@@ -130,9 +130,9 @@
           <i class="fa-brands fa-github text-lg text-amber-500"></i>
           <span>hacker1514/hadoop</span>
         </a>
-        <a href="../index.html" class="px-6 py-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-display font-extrabold text-sm shadow-xl shadow-slate-900/10 transition-all transform hover:scale-105 flex items-center gap-2">
+        <a href="#console" onclick="focusTerminalInput()" class="px-6 py-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-display font-extrabold text-sm shadow-xl shadow-slate-900/10 transition-all transform hover:scale-105 flex items-center gap-2">
           <span>Launch Terminal</span>
-          <i class="fa-solid fa-arrow-right text-xs text-amber-400"></i>
+          <i class="fa-solid fa-terminal text-xs text-amber-400"></i>
         </a>
       </div>
     </div>
@@ -159,7 +159,7 @@
           </p>
 
           <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
-            <a href="../index.html" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-display font-extrabold text-base shadow-2xl shadow-slate-900/20 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-3">
+            <a href="#console" onclick="focusTerminalInput()" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-display font-extrabold text-base shadow-2xl shadow-slate-900/20 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-3">
               <i class="fa-solid fa-play text-xs text-amber-400"></i> Launch Practice Terminal
             </a>
             <a href="https://github.com/hacker1514/hadoop" target="_blank" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 font-bold text-base transition-all border border-slate-200/90 shadow-sm flex items-center justify-center gap-3">
@@ -271,9 +271,9 @@
   <section id="console" class="py-24 relative">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="text-center max-w-3xl mx-auto mb-12">
-        <span class="text-xs font-mono text-amber-600 uppercase tracking-widest font-bold">Interactive Sandbox</span>
+        <span class="text-xs font-mono text-amber-600 uppercase tracking-widest font-bold">Interactive Practice Terminal</span>
         <h2 class="text-3xl font-display font-extrabold text-slate-900 tracking-tight mt-1">Live Terminal Playground</h2>
-        <p class="text-slate-600 text-sm mt-2">Test live Hadoop CLI commands directly on the web page below! Click presets or execute commands.</p>
+        <p class="text-slate-600 text-sm mt-2">Test live Hadoop CLI commands directly on the web page below! Click presets or type any command.</p>
       </div>
 
       <!-- TERMINAL COMPONENT -->
@@ -288,8 +288,8 @@
             <span class="text-xs font-mono text-slate-400 ml-2">Hacker@hadoop-master: /home/Hacker</span>
           </div>
           <div class="flex items-center space-x-2 text-xs font-mono text-slate-400">
-            <span class="px-2.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">NameNode: ONLINE</span>
-            <span class="px-2.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">YARN: READY</span>
+            <span id="nn-status" class="px-2.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">NameNode: ONLINE</span>
+            <span id="yarn-status" class="px-2.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">YARN: READY</span>
           </div>
         </div>
 
@@ -316,7 +316,7 @@
         <!-- TERMINAL INPUT LINE -->
         <div class="bg-slate-900 px-5 py-3 border-t border-slate-800 flex items-center space-x-2">
           <span class="font-mono text-amber-400 font-bold text-sm shrink-0">[[ K : ~ ]] : $</span>
-          <input type="text" id="cli-cmd-input" placeholder="Type a Hadoop command (e.g. start-all.sh, hdfs dfs -ls /)..." class="flex-1 bg-transparent border-none outline-none font-mono text-sm text-white placeholder-slate-500 pl-0 font-semibold" onkeydown="handleInput(event)">
+          <input type="text" id="cli-cmd-input" placeholder="Type a Hadoop command (e.g. start-all.sh, hdfs dfs -ls /)..." class="flex-1 bg-transparent border-none outline-none font-mono text-sm text-white placeholder-slate-500 pl-0 font-semibold" onkeydown="handleInput(event)" autoFocus>
           <button onclick="submitCommand()" class="px-4 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-lg transition transform hover:scale-105 shrink-0">Execute</button>
         </div>
       </div>
@@ -481,7 +481,7 @@
         <p class="text-slate-400 text-sm">Every command implemented across HDFS, YARN, Hive, HBase, Spark, Polyglot JS, Tez, and Security is documented in <code>~/about.txt</code>.</p>
       </div>
       <div>
-        <a href="../index.html" class="px-8 py-4 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-display font-extrabold text-base shadow-xl transition-all transform hover:scale-105 flex items-center gap-3">
+        <a href="#console" onclick="focusTerminalInput()" class="px-8 py-4 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-display font-extrabold text-base shadow-xl transition-all transform hover:scale-105 flex items-center gap-3">
           <i class="fa-solid fa-terminal"></i> Launch Simulator Now
         </a>
       </div>
@@ -509,10 +509,16 @@
     </div>
   </footer>
 
-  <!-- TERMINAL PLAYGROUND LOGIC -->
+  <!-- TERMINAL PLAYGROUND LOGIC & INTERPRETER -->
   <script>
     const termOut = document.getElementById('term-output');
     const cmdInput = document.getElementById('cli-cmd-input');
+
+    function focusTerminalInput() {
+      setTimeout(() => {
+        cmdInput.focus();
+      }, 300);
+    }
 
     function runPreset(cmd) {
       cmdInput.value = cmd;
@@ -526,18 +532,34 @@
       appendOutput(`[[ K : ~ ]] : $ ${val}`, 'text-amber-400 font-bold');
 
       let res = '';
-      if (val === 'start-all.sh' || val === 'start-dfs.sh') {
+      const lower = val.toLowerCase();
+
+      if (val === 'start-all.sh' || val === 'start-dfs.sh' || val === 'start-yarn.sh') {
         res = `Starting HDFS & YARN services...\nStarting namenodes on [localhost]\nStarting datanodes on [datanode1.hadoop.local, datanode2.hadoop.local, datanode3.hadoop.local]\nStarting resourcemanager on [localhost]\n✓ All Hadoop cluster daemons started successfully.`;
+      } else if (val === 'stop-all.sh' || val === 'stop-dfs.sh' || val === 'stop-yarn.sh') {
+        res = `Stopping HDFS & YARN services...\nStopping resourcemanager on [localhost]\nStopping datanodes on [datanode1.hadoop.local, datanode2.hadoop.local, datanode3.hadoop.local]\nStopping namenodes on [localhost]\n✓ All Hadoop cluster daemons stopped cleanly.`;
       } else if (val.startsWith('hdfs dfs -ls')) {
         res = `Found 1 items\n-rw-r--r--   3 Hacker supergroup      4096 2026-08-25 13:30 /about.txt`;
-      } else if (val.includes('SHOW TABLES')) {
-        res = `tab_name\n--------------------------------\nsales\nTime taken: 0.08 seconds, Fetched: 1 row(s)`;
+      } else if (val.startsWith('hdfs dfs -mkdir')) {
+        res = `✓ Directory created successfully in HDFS.`;
+      } else if (val.startsWith('hdfs dfs -cat') || val.startsWith('cat about.txt')) {
+        res = `================================================================================\n           BROWSER-BASED HADOOP SIMULATOR & PRACTICE LABORATORY GUIDE\n================================================================================\nDEVELOPER  : Niranjan Kumar K\nENVIRONMENT: Hadoop Simulation & Complete Enterprise Ecosystem Engine\nUSER       : Hacker (/home/Hacker)\nAll 65+ Hadoop & Ecosystem tools available!`;
+      } else if (val.includes('SHOW TABLES') || lower.startsWith('hive')) {
+        res = `tab_name\n--------------------------------\nsales\nproducts\nusers\nTime taken: 0.08 seconds, Fetched: 3 row(s)`;
       } else if (val.startsWith('node -e')) {
         res = `30`;
-      } else if (val.startsWith('cat about.txt')) {
-        res = `================================================================================\n           BROWSER-BASED HADOOP SIMULATOR & PRACTICE LABORATORY\n================================================================================\nDEVELOPER  : Niranjan Kumar K\nENVIRONMENT: Hadoop Simulation & Complete Enterprise Ecosystem Engine\nAll 65+ Hadoop & Ecosystem tools available!`;
+      } else if (val.startsWith('node ')) {
+        res = `[Node.js Runtime v18.16.0] Executing script...\n--------------------------------------------------\n[Map phase] Mapper processing input records...\n[Reduce phase] Reducer calculating key-value aggregations...\n✓ Node.js Script Executed Successfully.`;
+      } else if (lower.startsWith('yarn application') || lower.startsWith('yarn node')) {
+        res = `Total Applications : 1\nApplication-Id                  Name       User     State    Final-State\napplication_1700000000_0001     MapReduce  Hacker   RUNNING  UNDEFINED`;
+      } else if (lower.startsWith('spark-shell') || lower.startsWith('pyspark')) {
+        res = `Welcome to Apache Spark v3.3.0 Shell\nUsing Scala version 2.12.15 (Java HotSpot(TM) 64-Bit Server VM)\nSparkSession available as 'spark'.\nscala> `;
+      } else if (lower.startsWith('hbase shell')) {
+        res = `HBase Shell; enter 'help<RETURN>' for list of supported commands.\nVersion 2.4.11\nhbase(main):001:0> `;
+      } else if (val === 'help') {
+        res = `Available Commands (65+ Tools Supported):\n- HDFS: start-all.sh, hdfs dfs -ls, hdfs dfs -mkdir, hdfs dfs -put, hdfs dfs -cat, hdfs fsck, hdfs balancer\n- YARN: yarn application -list, yarn node -list, yarn logs\n- Polyglot: node -e, node script.js, hadoop jar hadoop-streaming.jar\n- SQL: hive -e "SHOW TABLES", spark-shell, pyspark, impala-shell, presto\n- NoSQL: hbase shell, phoenix-sqlline, kafka-topics.sh, flume-ng\n- Security & Tools: kinit, klist, ranger policy, vim, top, ps -ef`;
       } else {
-        res = `[Hadoop Cluster Engine] Executed: '${val}'. Open full simulator terminal for interactive execution.`;
+        res = `[Hadoop Cluster Engine] Executed: '${val}'. (Type 'help' or 'cat about.txt')`;
       }
 
       appendOutput(res, 'text-slate-300');
