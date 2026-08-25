@@ -1,0 +1,27 @@
+[
+  {
+    "package": "react",
+    "license": "MIT",
+    "compliant": true
+  },
+  {
+    "package": "react-dom",
+    "license": "MIT",
+    "compliant": true
+  },
+  {
+    "package": "lucide-react",
+    "license": "ISC",
+    "compliant": true
+  },
+  {
+    "package": "tailwindcss",
+    "license": "MIT",
+    "compliant": true
+  },
+  {
+    "package": "vitest",
+    "license": "MIT",
+    "compliant": true
+  }
+]

@@ -1,0 +1,7 @@
+{
+  "webWorkers": true,
+  "indexedDB": true,
+  "opfs": true,
+  "webStreams": true,
+  "minBrowserVersion": "ES2022 / Chrome 100+ / Firefox 100+ / Safari 16+"
+}

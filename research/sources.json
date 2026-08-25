@@ -1,0 +1,35 @@
+[
+  {
+    "name": "Apache Hadoop Documentation & Specs",
+    "url": "https://hadoop.apache.org/docs/stable/",
+    "type": "Specification Reference",
+    "license": "Apache-2.0",
+    "reusedModules": [
+      "BlockPlacementPolicyDefault",
+      "Safemode Rules",
+      "FSCK diagnostics",
+      "YARN Capacity Scheduler"
+    ],
+    "status": "ACTIVE_SPEC"
+  },
+  {
+    "name": "Lucide Icons",
+    "url": "https://lucide.dev/",
+    "type": "UI Icon Assets",
+    "license": "ISC",
+    "reusedModules": [
+      "lucide-react icons"
+    ],
+    "status": "INSTALLED"
+  },
+  {
+    "name": "Tailwind CSS",
+    "url": "https://tailwindcss.com/",
+    "type": "Styling Engine",
+    "license": "MIT",
+    "reusedModules": [
+      "Tailwind utility classes"
+    ],
+    "status": "INSTALLED"
+  }
+]

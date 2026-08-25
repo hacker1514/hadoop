@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en" class="light scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Apache Hadoop Enterprise Studio | Niranjan Kumar K</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- Google Fonts: Plus Jakarta Sans, Outfit & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+            display: ['Outfit', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            smooth: {
+              bg: '#FAF9F6',
+              card: '#FFFFFF',
+              border: 'rgba(226, 232, 240, 0.8)',
+              dark: '#0B0F19',
+              amber: '#F59E0B',
+              blue: '#3B82F6',
+              emerald: '#10B981',
+              purple: '#8B5CF6'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #FAF9F5;
+      color: #0F172A;
+      overflow-x: hidden;
+    }
+    
+    /* Smooth Fluid Radial Background Light Mesh */
+    .smooth-bg-mesh {
+      background-size: 60px 60px;
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.08) 0%, transparent 65%),
+        radial-gradient(circle at 80% 30%, rgba(59, 130, 246, 0.06) 0%, transparent 50%),
+        radial-gradient(circle at 20% 70%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+    }
+
+    /* Silky Smooth Card System */
+    .smooth-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      border-radius: 1.5rem;
+      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.03), 0 4px 12px -2px rgba(0, 0, 0, 0.02);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .smooth-card:hover {
+      border-color: rgba(245, 158, 11, 0.5);
+      transform: translateY(-6px);
+      box-shadow: 0 25px 50px -12px rgba(245, 158, 11, 0.12), 0 10px 20px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    /* Smooth Gradient Text */
+    .smooth-gradient-text {
+      background: linear-gradient(135deg, #0F172A 0%, #1E293B 40%, #D97706 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .smooth-gold-text {
+      background: linear-gradient(135deg, #F59E0B 0%, #D97706 60%, #B45309 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .terminal-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .terminal-scroll::-webkit-scrollbar-track {
+      background: #0B0F19;
+    }
+    .terminal-scroll::-webkit-scrollbar-thumb {
+      background: #1E293B;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="font-sans antialiased bg-[#FAF9F5] text-slate-900 smooth-bg-mesh">
+
+  <!-- TOP SILKY SMOOTH GLASS NAVBAR -->
+  <header class="fixed top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-2xl border-b border-slate-200/60 shadow-sm transition-all">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      
+      <!-- LOGO BRANDING -->
+      <div class="flex items-center space-x-3.5">
+        <div class="relative group">
+          <div class="absolute -inset-1 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-600 rounded-2xl blur-md opacity-50 group-hover:opacity-100 transition duration-500"></div>
+          <img src="./hadoop_logo.jpg" alt="Apache Hadoop Logo" class="relative w-11 h-11 rounded-2xl object-cover border border-slate-200 shadow-md" />
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="text-xl font-display font-bold tracking-tight text-slate-900">Hadoop<span class="smooth-gold-text font-black">Studio</span></span>
+            <span class="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 border border-amber-300/60">v3.3.0 Enterprise</span>
+          </div>
+          <span class="text-xs text-slate-500 font-mono block">Engineered by Niranjan Kumar K</span>
+        </div>
+      </div>
+
+      <!-- SILKY NAV LINKS -->
+      <nav class="hidden md:flex items-center space-x-9 text-sm font-semibold text-slate-600">
+        <a href="#overview" class="hover:text-amber-600 transition-colors">Overview</a>
+        <a href="#architecture" class="hover:text-amber-600 transition-colors">Architecture</a>
+        <a href="#matrix" class="hover:text-amber-600 transition-colors">Ecosystem (65+)</a>
+        <a href="#console" class="hover:text-amber-600 transition-colors">Live Console</a>
+        <a href="#comparison" class="hover:text-amber-600 transition-colors">Comparison</a>
+      </nav>
+
+      <!-- CTA BUTTONS -->
+      <div class="flex items-center space-x-3.5">
+        <a href="https://github.com/hacker1514/hadoop" target="_blank" class="px-4 py-2.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 text-sm font-semibold border border-slate-200/90 shadow-sm transition-all hover:border-slate-300 flex items-center gap-2">
+          <i class="fa-brands fa-github text-lg text-amber-500"></i>
+          <span>hacker1514/hadoop</span>
+        </a>
+        <a href="../index.html" class="px-6 py-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-display font-extrabold text-sm shadow-xl shadow-slate-900/10 transition-all transform hover:scale-105 flex items-center gap-2">
+          <span>Launch Terminal</span>
+          <i class="fa-solid fa-arrow-right text-xs text-amber-400"></i>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- SILKY SMOOTH HERO SECTION -->
+  <section id="overview" class="pt-36 pb-24 relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        
+        <!-- HERO CONTENT -->
+        <div class="lg:col-span-7 space-y-8 text-center lg:text-left">
+          <div class="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-300/60 text-xs font-mono font-bold text-amber-800 shadow-sm">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+            Enterprise Distributed Computing Laboratory & Ecosystem Engine
+          </div>
+
+          <h1 class="text-4xl sm:text-6xl font-display font-black tracking-tight text-slate-900 leading-tight">
+            The Ultra-Smooth <span class="smooth-gold-text">Apache Hadoop</span> Infrastructure Practice Platform.
+          </h1>
+
+          <p class="text-base sm:text-lg text-slate-600 leading-relaxed font-normal">
+            Architected & Engineered by <b>Niranjan Kumar K</b>. Master big data infrastructure cleanly inside your browser. Practice HDFS storage tiering, YARN capacity schedulers, MapReduce, Hive LLAP, HBase NoSQL, Spark RDDs, Polyglot JS Streaming, Tez, Ranger, and Kerberos with <b>65+ production subsystems</b>.
+          </p>
+
+          <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
+            <a href="../index.html" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-display font-extrabold text-base shadow-2xl shadow-slate-900/20 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-3">
+              <i class="fa-solid fa-play text-xs text-amber-400"></i> Launch Practice Terminal
+            </a>
+            <a href="https://github.com/hacker1514/hadoop" target="_blank" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 font-bold text-base transition-all border border-slate-200/90 shadow-sm flex items-center justify-center gap-3">
+              <i class="fa-brands fa-github text-lg text-slate-700"></i> View GitHub Repository
+            </a>
+          </div>
+
+          <!-- METRICS -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 text-left">
+            <div class="p-4 rounded-2xl bg-white/90 border border-slate-200/80 shadow-sm">
+              <div class="text-3xl font-display font-black text-amber-600 font-mono">65+</div>
+              <div class="text-[11px] text-slate-500 font-semibold uppercase tracking-wider mt-1">Enterprise Tools</div>
+            </div>
+            <div class="p-4 rounded-2xl bg-white/90 border border-slate-200/80 shadow-sm">
+              <div class="text-3xl font-display font-black text-blue-600 font-mono">100%</div>
+              <div class="text-[11px] text-slate-500 font-semibold uppercase tracking-wider mt-1">Browser Engine</div>
+            </div>
+            <div class="p-4 rounded-2xl bg-white/90 border border-slate-200/80 shadow-sm">
+              <div class="text-3xl font-display font-black text-emerald-600 font-mono">Node.js</div>
+              <div class="text-[11px] text-slate-500 font-semibold uppercase tracking-wider mt-1">Polyglot JS Engine</div>
+            </div>
+            <div class="p-4 rounded-2xl bg-white/90 border border-slate-200/80 shadow-sm">
+              <div class="text-3xl font-display font-black text-purple-600 font-mono">Zero</div>
+              <div class="text-[11px] text-slate-500 font-semibold uppercase tracking-wider mt-1">Server Setup</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- HERO 3D LOGO EMBEDDED CARD -->
+        <div class="lg:col-span-5 flex justify-center">
+          <div class="relative group">
+            <div class="absolute -inset-4 bg-gradient-to-tr from-amber-300/40 via-yellow-200/30 to-blue-300/30 rounded-3xl blur-2xl opacity-70 group-hover:opacity-100 transition duration-700"></div>
+            <div class="relative rounded-3xl p-3 bg-white/90 border border-slate-200 shadow-2xl backdrop-blur-xl">
+              <img src="./hadoop_logo.jpg" alt="Apache Hadoop Golden Elephant Logo" class="w-full max-w-[420px] h-auto rounded-2xl shadow-lg object-cover transform transition duration-500 group-hover:scale-[1.02]" />
+              <div class="p-4 text-center bg-slate-50/90 rounded-2xl mt-3 border border-slate-200/80">
+                <span class="text-xs font-mono font-bold text-slate-900 block uppercase tracking-widest">Apache Hadoop Golden Elephant Logo</span>
+                <span class="text-[11px] text-slate-500 block mt-0.5">Custom Vector Engine Visual Asset</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- DISTRIBUTED ARCHITECTURE TOPOLOGY SECTION -->
+  <section id="architecture" class="py-24 bg-white/60 border-t border-b border-slate-200/80 relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <span class="text-xs font-mono text-amber-600 uppercase tracking-widest font-bold">Distributed Architecture</span>
+        <h2 class="text-3xl sm:text-4xl font-display font-extrabold text-slate-900 tracking-tight mt-1">Hadoop 3.x System Topology</h2>
+        <p class="text-slate-600 text-sm mt-3">High-availability metadata coordination, container scheduling, and rack-aware replication.</p>
+      </div>
+
+      <!-- TOPOLOGY CARDS GRID -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        
+        <!-- CARD 1 -->
+        <div class="smooth-card p-7 space-y-4 border-t-4 border-t-amber-500">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-mono font-bold px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 border border-amber-300/60">Active NameNode</span>
+            <i class="fa-solid fa-server text-2xl text-amber-500"></i>
+          </div>
+          <h3 class="text-xl font-bold text-slate-900">Metadata & FSCK Controller</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">Manages HDFS namespace, block location mapping, and HA failover states between Active (`nn1`) and Standby (`nn2`) NameNodes.</p>
+          <div class="text-xs font-mono bg-slate-50 p-4 rounded-2xl border border-slate-200/80 text-slate-700 space-y-1.5">
+            <div><span class="text-amber-700 font-bold">Port:</span> 9000 (IPC) / 9870 (Web UI)</div>
+            <div><span class="text-amber-700 font-bold">FSImage Checkpoint:</span> Active</div>
+            <div><span class="text-amber-700 font-bold">Erasure Coding:</span> RS-6-3-1024k</div>
+          </div>
+        </div>
+
+        <!-- CARD 2 -->
+        <div class="smooth-card p-7 space-y-4 border-t-4 border-t-blue-500">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-mono font-bold px-3 py-1 rounded-full bg-blue-500/10 text-blue-700 border border-blue-300/60">ResourceManager</span>
+            <i class="fa-solid fa-microchip text-2xl text-blue-500"></i>
+          </div>
+          <h3 class="text-xl font-bold text-slate-900">YARN Capacity Scheduler</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">Orchestrates application containers, vCore allocations, and memory queues across NodeManagers.</p>
+          <div class="text-xs font-mono bg-slate-50 p-4 rounded-2xl border border-slate-200/80 text-slate-700 space-y-1.5">
+            <div><span class="text-blue-700 font-bold">Port:</span> 8088 (Web UI) / 8032 (Scheduler)</div>
+            <div><span class="text-blue-700 font-bold">Tez DAG Memory:</span> Enabled</div>
+            <div><span class="text-blue-700 font-bold">Shared Cache Manager:</span> Active</div>
+          </div>
+        </div>
+
+        <!-- CARD 3 -->
+        <div class="smooth-card p-7 space-y-4 border-t-4 border-t-emerald-500">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-mono font-bold px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-700 border border-emerald-300/60">DataNode Cluster</span>
+            <i class="fa-solid fa-network-wired text-2xl text-emerald-500"></i>
+          </div>
+          <h3 class="text-xl font-bold text-slate-900">Rack-Aware Storage</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">Stores 128MB block splits across multiple racks (`/rack-01`, `/rack-02`) with automated DataNode block reports.</p>
+          <div class="text-xs font-mono bg-slate-50 p-4 rounded-2xl border border-slate-200/80 text-slate-700 space-y-1.5">
+            <div><span class="text-emerald-700 font-bold">DataNodes:</span> 3 Live Hosts</div>
+            <div><span class="text-emerald-700 font-bold">Replication Factor:</span> 3x Replicas</div>
+            <div><span class="text-emerald-700 font-bold">Storage Tiers:</span> HOT / COLD</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- LIVE TERMINAL CONSOLE SHOWCASE -->
+  <section id="console" class="py-24 relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-3xl mx-auto mb-12">
+        <span class="text-xs font-mono text-amber-600 uppercase tracking-widest font-bold">Interactive Sandbox</span>
+        <h2 class="text-3xl font-display font-extrabold text-slate-900 tracking-tight mt-1">Live Terminal Playground</h2>
+        <p class="text-slate-600 text-sm mt-2">Test live Hadoop CLI commands directly on the web page below! Click presets or execute commands.</p>
+      </div>
+
+      <!-- TERMINAL COMPONENT -->
+      <div class="max-w-4xl mx-auto rounded-3xl overflow-hidden bg-slate-950 border border-slate-800 shadow-2xl">
+        
+        <!-- TITLE BAR -->
+        <div class="bg-slate-900 px-5 py-3.5 border-b border-slate-800 flex items-center justify-between">
+          <div class="flex items-center space-x-2.5">
+            <div class="w-3.5 h-3.5 rounded-full bg-rose-500"></div>
+            <div class="w-3.5 h-3.5 rounded-full bg-amber-500"></div>
+            <div class="w-3.5 h-3.5 rounded-full bg-emerald-500"></div>
+            <span class="text-xs font-mono text-slate-400 ml-2">Hacker@hadoop-master: /home/Hacker</span>
+          </div>
+          <div class="flex items-center space-x-2 text-xs font-mono text-slate-400">
+            <span class="px-2.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">NameNode: ONLINE</span>
+            <span class="px-2.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">YARN: READY</span>
+          </div>
+        </div>
+
+        <!-- QUICK PRESETS -->
+        <div class="bg-slate-900/90 px-5 py-2.5 border-b border-slate-800 flex flex-wrap gap-2 text-xs font-mono">
+          <span class="text-slate-500 self-center font-bold">Presets:</span>
+          <button onclick="runPreset('start-all.sh')" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 transition">start-all.sh</button>
+          <button onclick="runPreset('hdfs dfs -ls /')" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-slate-700 transition">hdfs dfs -ls /</button>
+          <button onclick="runPreset('hive -e &quot;SHOW TABLES&quot;')" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 transition">hive -e "SHOW TABLES"</button>
+          <button onclick="runPreset('node -e &quot;console.log(10 + 20)&quot;')" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-purple-400 border border-slate-700 transition">node -e</button>
+          <button onclick="runPreset('cat about.txt')" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 transition">cat about.txt</button>
+        </div>
+
+        <!-- TERMINAL SCREEN -->
+        <div id="term-output" class="p-5 font-mono text-sm h-96 overflow-y-auto terminal-scroll bg-slate-950 text-slate-200 space-y-2">
+          <div class="text-amber-400 font-bold">================================================================================</div>
+          <div class="text-amber-400 font-bold">           BROWSER-BASED HADOOP SIMULATOR & PRACTICE LABORATORY</div>
+          <div class="text-amber-400 font-bold">================================================================================</div>
+          <div class="text-slate-400 text-xs">DEVELOPER  : Niranjan Kumar K | User: Hacker</div>
+          <div class="text-slate-400 text-xs">ENVIRONMENT: Hadoop 3.3.0 Enterprise Engine (Type 'help' or 'cat about.txt')</div>
+          <div class="text-slate-400 text-xs">--------------------------------------------------------------------------------</div>
+        </div>
+
+        <!-- TERMINAL INPUT LINE -->
+        <div class="bg-slate-900 px-5 py-3 border-t border-slate-800 flex items-center space-x-2">
+          <span class="font-mono text-amber-400 font-bold text-sm shrink-0">[[ K : ~ ]] : $</span>
+          <input type="text" id="cli-cmd-input" placeholder="Type a Hadoop command (e.g. start-all.sh, hdfs dfs -ls /)..." class="flex-1 bg-transparent border-none outline-none font-mono text-sm text-white placeholder-slate-500 pl-0 font-semibold" onkeydown="handleInput(event)">
+          <button onclick="submitCommand()" class="px-4 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-lg transition transform hover:scale-105 shrink-0">Execute</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 65+ ECOSYSTEM MATRIX CARDS -->
+  <section id="matrix" class="py-24 bg-white/60 border-t border-slate-200/80 relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <span class="text-xs font-mono text-amber-600 uppercase tracking-widest font-bold">Complete Engine Matrix</span>
+        <h2 class="text-3xl sm:text-4xl font-display font-extrabold text-slate-900 tracking-tight mt-1">Ecosystem Matrix (65+ Tools)</h2>
+        <p class="text-slate-600 text-base mt-3">From raw block storage to MPP query engines, every enterprise Hadoop service is fully simulated.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        
+        <!-- CARD 1 -->
+        <div class="smooth-card p-7 space-y-4">
+          <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center text-xl font-bold border border-amber-300/40">
+            <i class="fa-solid fa-database"></i>
+          </div>
+          <h3 class="text-xl font-bold text-slate-900">HDFS Storage & Tiering</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">Rack-aware block distribution (128MB splits), FSCK diagnostics, block locations, and storage policies.</p>
+          <ul class="text-xs font-mono text-slate-700 space-y-2 pt-2 border-t border-slate-200/80">
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-amber-600"></i> Storage Policies (HOT, WARM, COLD)</li>
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-amber-600"></i> Erasure Coding (RS-6-3-1024k)</li>
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-amber-600"></i> Off-Heap Cache (cacheadmin)</li>
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-amber-600"></i> Snapshots & HDFS Balancer</li>
+          </ul>
+        </div>
+
+        <!-- CARD 2 -->
+        <div class="smooth-card p-7 space-y-4">
+          <div class="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-600 flex items-center justify-center text-xl font-bold border border-blue-300/40">
+            <i class="fa-solid fa-microchip"></i>
+          </div>
+          <h3 class="text-xl font-bold text-slate-900">YARN & MapReduce</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">Resource allocations, Capacity Scheduler queues, Container logs, NodeManager status, and Apache Tez DAG engine.</p>
+          <ul class="text-xs font-mono text-slate-700 space-y-2 pt-2 border-t border-slate-200/80">
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-blue-600"></i> MapReduce Jar Runner (hadoop jar)</li>
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-blue-600"></i> Apache Tez Memory DAG (tez-job.sh)</li>
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-blue-600"></i> YARN Container Logs (yarn logs)</li>
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-blue-600"></i> Shared Cache Manager (yarn scm)</li>
+          </ul>
+        </div>
+
+        <!-- CARD 3 -->
+        <div class="smooth-card p-7 space-y-4">
+          <div class="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-600 flex items-center justify-center text-xl font-bold border border-purple-300/40">
+            <i class="fa-brands fa-node-js"></i>
+          </div>
+          <h3 class="text-xl font-bold text-slate-900">Node.js Polyglot Engine</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">Real JavaScript Function execution engine. Write JS scripts in Vim and run MapReduce via Hadoop Streaming.</p>
+          <ul class="text-xs font-mono text-slate-700 space-y-2 pt-2 border-t border-slate-200/80">
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-purple-600"></i> Node.js Runtime Engine (v18.16)</li>
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-purple-600"></i> Real JS Console Execution (node script.js)</li>
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-purple-600"></i> Inline Evaluation (node -e)</li>
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-purple-600"></i> Hadoop Streaming (hadoop-streaming.jar)</li>
+          </ul>
+        </div>
+
+        <!-- CARD 4 -->
+        <div class="smooth-card p-7 space-y-4">
+          <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center text-xl font-bold border border-emerald-300/40">
+            <i class="fa-solid fa-table"></i>
+          </div>
+          <h3 class="text-xl font-bold text-slate-900">Hive, Impala & Spark</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">Metastore table parsing, DDL schema evolution, LLAP memory caches, Spark RDDs, and interactive REPLs.</p>
+          <ul class="text-xs font-mono text-slate-700 space-y-2 pt-2 border-t border-slate-200/80">
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-600"></i> Hive SQL Metastore & LLAP Accelerator</li>
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-600"></i> Spark Scala Shell (spark-shell)</li>
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-600"></i> PySpark Python Shell (pyspark)</li>
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-600"></i> Impala & Presto Low-Latency MPP SQL</li>
+          </ul>
+        </div>
+
+        <!-- CARD 5 -->
+        <div class="smooth-card p-7 space-y-4">
+          <div class="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-600 flex items-center justify-center text-xl font-bold border border-rose-300/40">
+            <i class="fa-solid fa-cubes"></i>
+          </div>
+          <h3 class="text-xl font-bold text-slate-900">HBase, Kafka & Flume</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">NoSQL column-family storage shell, Phoenix SQL skin, Kafka topic partitioning, and Flume event ingestion.</p>
+          <ul class="text-xs font-mono text-slate-700 space-y-2 pt-2 border-t border-slate-200/80">
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-rose-600"></i> HBase Shell (create, put, get, scan)</li>
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-rose-600"></i> Apache Phoenix JDBC SQL (phoenix-sqlline)</li>
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-rose-600"></i> Apache Kafka Clusters (kafka-topics.sh)</li>
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-rose-600"></i> Apache Flume HDFS Ingestion (flume-ng)</li>
+          </ul>
+        </div>
+
+        <!-- CARD 6 -->
+        <div class="smooth-card p-7 space-y-4">
+          <div class="w-12 h-12 rounded-2xl bg-cyan-500/10 text-cyan-600 flex items-center justify-center text-xl font-bold border border-cyan-300/40">
+            <i class="fa-solid fa-shield-halved"></i>
+          </div>
+          <h3 class="text-xl font-bold text-slate-900">Security & Linux Tools</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">Kerberos ticket authentication, Apache Ranger policy enforcement, Vim editor, and Linux system monitoring.</p>
+          <ul class="text-xs font-mono text-slate-700 space-y-2 pt-2 border-t border-slate-200/80">
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-cyan-600"></i> Kerberos Auth (kinit, klist, kdestroy)</li>
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-cyan-600"></i> Apache Ranger Security (ranger policy)</li>
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-cyan-600"></i> Interactive Vim Editor (vim about.txt)</li>
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-cyan-600"></i> Process Monitor (top, ps -ef, kill)</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPARISON BENCHMARK SECTION -->
+  <section id="comparison" class="py-20 relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-3xl mx-auto mb-12">
+        <span class="text-xs font-mono text-amber-600 uppercase tracking-widest font-bold">Why Choose Simulator?</span>
+        <h2 class="text-3xl font-display font-extrabold text-slate-900 tracking-tight mt-1">Heavy VM Cluster vs Hadoop Studio</h2>
+      </div>
+
+      <div class="max-w-4xl mx-auto smooth-card overflow-hidden">
+        <table class="w-full text-left text-xs font-mono">
+          <thead class="bg-slate-50 text-slate-500 border-b border-slate-200/80">
+            <tr>
+              <th class="px-6 py-4">Feature Metric</th>
+              <th class="px-6 py-4 text-slate-400">Traditional Heavy VM / Hardware Cluster</th>
+              <th class="px-6 py-4 text-amber-600 font-bold">Hadoop Studio Simulator</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200/60 text-slate-700">
+            <tr class="hover:bg-slate-50/80">
+              <td class="px-6 py-4 font-bold text-slate-900">RAM Requirement</td>
+              <td class="px-6 py-4 text-rose-600 font-semibold">16GB - 32GB RAM Needed</td>
+              <td class="px-6 py-4 text-emerald-600 font-bold">Lightweight Browser RAM (&lt;50MB)</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80">
+              <td class="px-6 py-4 font-bold text-slate-900">Setup Time</td>
+              <td class="px-6 py-4 text-rose-600 font-semibold">2 - 5 Hours Setup</td>
+              <td class="px-6 py-4 text-emerald-600 font-bold">Instant 0-Second Launch</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80">
+              <td class="px-6 py-4 font-bold text-slate-900">Polyglot Code Runner</td>
+              <td class="px-6 py-4 text-slate-500">Complex Java JAR setup</td>
+              <td class="px-6 py-4 text-emerald-600 font-bold">Native Node.js JS Engine (`node script.js`)</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80">
+              <td class="px-6 py-4 font-bold text-slate-900">Subsystem Support</td>
+              <td class="px-6 py-4 text-slate-500">Manual Daemon Installs</td>
+              <td class="px-6 py-4 text-emerald-600 font-bold">65+ Pre-configured Tools Ready</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- MASTER DOC CTA SECTION -->
+  <section class="py-16 bg-slate-900 text-white relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-8">
+      <div class="space-y-2 max-w-2xl">
+        <span class="text-xs font-mono text-amber-400 uppercase tracking-widest font-bold">Built-in Documentation</span>
+        <h2 class="text-2xl sm:text-3xl font-display font-bold">Access `about.txt` Directly In Your Home Directory</h2>
+        <p class="text-slate-400 text-sm">Every command implemented across HDFS, YARN, Hive, HBase, Spark, Polyglot JS, Tez, and Security is documented in <code>~/about.txt</code>.</p>
+      </div>
+      <div>
+        <a href="../index.html" class="px-8 py-4 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-display font-extrabold text-base shadow-xl transition-all transform hover:scale-105 flex items-center gap-3">
+          <i class="fa-solid fa-terminal"></i> Launch Simulator Now
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- SILKY FOOTER -->
+  <footer class="border-t border-slate-200/80 bg-white py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+      
+      <div class="flex items-center space-x-3">
+        <img src="./hadoop_logo.jpg" alt="Logo" class="w-8 h-8 rounded-xl object-cover border border-slate-200 shadow-sm" />
+        <span class="text-sm font-bold text-slate-900">Apache Hadoop Enterprise Studio</span>
+      </div>
+
+      <div class="text-xs text-slate-500 font-mono text-center md:text-left">
+        Developed & Maintained by <span class="text-slate-900 font-bold">Niranjan Kumar K</span> | User: <span class="text-amber-600 font-bold">Hacker</span>
+      </div>
+
+      <div class="flex items-center space-x-6 text-sm text-slate-600 font-mono">
+        <a href="https://github.com/hacker1514/hadoop" target="_blank" class="hover:text-amber-600 transition flex items-center gap-2 font-semibold">
+          <i class="fa-brands fa-github text-amber-500"></i> hacker1514/hadoop
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- TERMINAL PLAYGROUND LOGIC -->
+  <script>
+    const termOut = document.getElementById('term-output');
+    const cmdInput = document.getElementById('cli-cmd-input');
+
+    function runPreset(cmd) {
+      cmdInput.value = cmd;
+      submitCommand();
+    }
+
+    function submitCommand() {
+      const val = cmdInput.value.trim();
+      if (!val) return;
+
+      appendOutput(`[[ K : ~ ]] : $ ${val}`, 'text-amber-400 font-bold');
+
+      let res = '';
+      if (val === 'start-all.sh' || val === 'start-dfs.sh') {
+        res = `Starting HDFS & YARN services...\nStarting namenodes on [localhost]\nStarting datanodes on [datanode1.hadoop.local, datanode2.hadoop.local, datanode3.hadoop.local]\nStarting resourcemanager on [localhost]\n✓ All Hadoop cluster daemons started successfully.`;
+      } else if (val.startsWith('hdfs dfs -ls')) {
+        res = `Found 1 items\n-rw-r--r--   3 Hacker supergroup      4096 2026-08-25 13:30 /about.txt`;
+      } else if (val.includes('SHOW TABLES')) {
+        res = `tab_name\n--------------------------------\nsales\nTime taken: 0.08 seconds, Fetched: 1 row(s)`;
+      } else if (val.startsWith('node -e')) {
+        res = `30`;
+      } else if (val.startsWith('cat about.txt')) {
+        res = `================================================================================\n           BROWSER-BASED HADOOP SIMULATOR & PRACTICE LABORATORY\n================================================================================\nDEVELOPER  : Niranjan Kumar K\nENVIRONMENT: Hadoop Simulation & Complete Enterprise Ecosystem Engine\nAll 65+ Hadoop & Ecosystem tools available!`;
+      } else {
+        res = `[Hadoop Cluster Engine] Executed: '${val}'. Open full simulator terminal for interactive execution.`;
+      }
+
+      appendOutput(res, 'text-slate-300');
+      cmdInput.value = '';
+      termOut.scrollTop = termOut.scrollHeight;
+    }
+
+    function appendOutput(text, className) {
+      const div = document.createElement('div');
+      div.className = className + ' whitespace-pre-wrap';
+      div.textContent = text;
+      termOut.appendChild(div);
+    }
+
+    function handleInput(e) {
+      if (e.key === 'Enter') {
+        submitCommand();
+      }
+    }
+  </script>
+</body>
+</html>
