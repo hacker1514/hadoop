@@ -20,7 +20,7 @@ export class SimulationEngine {
     this.eventStore = new EventStore();
     this.rng = new SeededRNG(seed);
 
-    // Whenever clock ticks, process events scheduled up to virtualTime
+    
     this.clock.subscribe((virtualTime) => {
       this.processEventsUpTo(virtualTime);
     });

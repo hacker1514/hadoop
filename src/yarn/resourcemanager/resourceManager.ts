@@ -35,7 +35,7 @@ export class ResourceManager {
   public requestContainer(appId: AppId, memoryMb: number, vCores: number, queueName: string = 'root.default', preferredNodeId?: NodeId): YARNContainer | undefined {
     const queue = this.queues.get(queueName) || this.queues.get('root.default')!;
 
-    // Find a node with sufficient available vCores and memory
+    
     const availableNodes = Array.from(this.nodes.values()).filter(
       (n) => n.state === 'RUNNING' && n.memoryCapacityMb - n.memoryUsedMb >= memoryMb && n.vCoresCapacity - n.vCoresUsed >= vCores
     );
@@ -53,7 +53,7 @@ export class ResourceManager {
       return undefined;
     }
 
-    // Prefer node matching data locality if specified
+    
     let selectedNode: VirtualNode;
     if (preferredNodeId && availableNodes.some((n) => n.id === preferredNodeId)) {
       selectedNode = availableNodes.find((n) => n.id === preferredNodeId)!;
@@ -77,7 +77,7 @@ export class ResourceManager {
     container.state = transitionContainer('REQUESTED', 'ALLOCATED');
     this.containers.set(containerId, container);
 
-    // Deduct resources
+    
     selectedNode.memoryUsedMb += memoryMb;
     selectedNode.vCoresUsed += vCores;
     selectedNode.containers.push(containerId);

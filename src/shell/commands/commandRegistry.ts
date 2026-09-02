@@ -5,6 +5,8 @@ import { parseHadoopCommand, ParsedCommand } from '../parser/lexerParser';
 import { INodeFile } from '../../core/domain/types';
 import { HiveEngine } from '../../ecosystem/hive/hiveEngine';
 import { HBaseEngine } from '../../ecosystem/hbase/hbaseEngine';
+import { HadoopDB, ShellState } from '../../storage/hadoopDB';
+
 
 const ABOUT_GUIDE_CONTENT = `================================================================================
            BROWSER-BASED HADOOP SIMULATOR & PRACTICE LABORATORY GUIDE
@@ -164,18 +166,13 @@ export class HadoopShellExecutor {
   private mapReduceEngine: MapReduceEngine;
   private hiveEngine: HiveEngine;
   private hbaseEngine: HBaseEngine;
+  private db: HadoopDB;
 
-  // Hadoop Daemon Status (Default STOPPED for strict reality)
   private isHDFSStarted: boolean = false;
   private isYARNStarted: boolean = false;
-
-  // Kerberos Ticket Cache
   private kerberosTicket: string | null = null;
-
-  // NameNode HA State
   private activeNameNodeId: string = 'nn1';
 
-  // HDFS Storage Policy, EC, Cache, ACL & Quotas maps
   private storagePolicies: Map<string, string> = new Map();
   private ecPolicies: Map<string, string> = new Map();
   private cacheDirectives: Map<string, string> = new Map();
@@ -185,23 +182,84 @@ export class HadoopShellExecutor {
   private fileQuotas: Map<string, number> = new Map();
   private spaceQuotas: Map<string, string> = new Map();
 
-  // Command Execution History
   private historyList: string[] = [];
 
-  // Local Simulated Linux Filesystem State for User "Hacker"
   private localDir: string = '/home/Hacker';
   private localFiles: Map<string, string> = new Map([
     ['/home/Hacker/about.txt', ABOUT_GUIDE_CONTENT]
   ]);
   private localDirs: Set<string> = new Set(['/', '/home', '/home/Hacker']);
 
-  constructor(nameNode: NameNode, resourceManager: ResourceManager, mapReduceEngine: MapReduceEngine) {
+  private cachedStorageUsage: number = 0;
+  private cachedStorageQuota: number = 0;
+
+  constructor(nameNode: NameNode, resourceManager: ResourceManager, mapReduceEngine: MapReduceEngine, db: HadoopDB) {
     this.nameNode = nameNode;
     this.resourceManager = resourceManager;
     this.mapReduceEngine = mapReduceEngine;
     this.hiveEngine = new HiveEngine();
     this.hbaseEngine = new HBaseEngine();
+    this.db = db;
+    this.startStorageRefresh();
   }
+
+  private startStorageRefresh(): void {
+    const refresh = () => {
+      this.db.getStorageEstimate().then(({ usageBytes, quotaBytes }) => {
+        this.cachedStorageUsage = usageBytes;
+        this.cachedStorageQuota = quotaBytes;
+      });
+    };
+    refresh();
+    setInterval(refresh, 30000);
+  }
+
+  public async loadFromDB(): Promise<void> {
+    await this.db.waitReady();
+
+    const savedFiles = await this.db.loadAllLocalFiles();
+    if (savedFiles.size > 0) {
+      this.localFiles = savedFiles;
+      if (!this.localFiles.has('/home/Hacker/about.txt')) {
+        this.localFiles.set('/home/Hacker/about.txt', ABOUT_GUIDE_CONTENT);
+      }
+    }
+
+    const savedDirs = await this.db.loadAllLocalDirs();
+    if (savedDirs.size > 0) {
+      this.localDirs = savedDirs;
+      this.localDirs.add('/');
+      this.localDirs.add('/home');
+      this.localDirs.add('/home/Hacker');
+    }
+
+    const savedHistory = await this.db.loadCommandHistory();
+    if (savedHistory.length > 0) {
+      this.historyList = savedHistory;
+    }
+
+    const savedState = await this.db.loadShellState();
+    if (savedState) {
+      this.isHDFSStarted = savedState.isHDFSStarted;
+      this.isYARNStarted = savedState.isYARNStarted;
+      this.localDir = savedState.localDir;
+      this.kerberosTicket = savedState.kerberosTicket;
+      this.activeNameNodeId = savedState.activeNameNodeId;
+    }
+  }
+
+  private persistShellState(): void {
+    const state: ShellState = {
+      isHDFSStarted: this.isHDFSStarted,
+      isYARNStarted: this.isYARNStarted,
+      localDir: this.localDir,
+      kerberosTicket: this.kerberosTicket,
+      activeNameNodeId: this.activeNameNodeId
+    };
+    this.db.saveShellState(state);
+  }
+
+
 
   public getWorkingDirDisplay(): string {
     if (this.localDir === '/home/Hacker') return '~';
@@ -219,22 +277,24 @@ export class HadoopShellExecutor {
   public saveLocalFileContent(pathStr: string, content: string): void {
     const resolved = this.resolveLocalPath(pathStr);
     this.localFiles.set(resolved, content);
+    this.db.saveLocalFile(resolved, content);
   }
 
   public execute(commandLine: string): string {
     const trimmed = commandLine.trim();
     if (trimmed) {
       this.historyList.push(trimmed);
+      this.db.saveCommandHistory(this.historyList);
     }
 
-    // Hive LLAP Engine
+    
     if (trimmed.startsWith('hive --service llap')) {
       return `[Hive LLAP Engine] Initializing Long-Lived Process Daemons...
 [LLAP Daemon] Allocated 16GB off-heap memory cache across NodeManagers.
 ✓ Hive LLAP Service Active (Low-latency in-memory SQL execution ready).`;
     }
 
-    // Spark Shell (Scala REPL)
+    
     if (trimmed.startsWith('spark-shell')) {
       if (!this.isYARNStarted) return `Spark Error: YARN ResourceManager is STOPPED. Run 'start-yarn.sh'.`;
       return `Spark context Web UI available at http://localhost:4040
@@ -247,7 +307,7 @@ scala> textFile.count()
 res0: Long = 125`;
     }
 
-    // PySpark (Python REPL)
+    
     if (trimmed.startsWith('pyspark')) {
       if (!this.isYARNStarted) return `Spark Error: YARN ResourceManager is STOPPED. Run 'start-yarn.sh'.`;
       return `Welcome to
@@ -270,13 +330,13 @@ SparkSession available as 'spark'.
 +----+--------+`;
     }
 
-    // Apache Kyuubi Gateway
+    
     if (trimmed.startsWith('kyuubi')) {
       return `[Apache Kyuubi SQL Gateway] Server starting on thrift server port 10009...
 ✓ Kyuubi Server active (Engine: Spark SQL, Multi-tenant Session Isolation Enabled).`;
     }
 
-    // Apache Impala MPP SQL Engine
+    
     if (trimmed.startsWith('impala-shell')) {
       return `[Impala Shell v3.4.0] Connected to impalad at localhost:21000
 Query: SELECT * FROM sales
@@ -289,19 +349,19 @@ Query: SELECT * FROM sales
 Fetched 2 row(s) in 0.015s`;
     }
 
-    // Apache NiFi Dataflow Engine
+    
     if (trimmed.startsWith('nifi.sh')) {
       return `[Apache NiFi Flow Engine] Starting Flow Controller...
 ✓ NiFi Web UI initialized on https://localhost:8443/nifi (Active Flow Processors: 12).`;
     }
 
-    // Zeppelin Notebook Server
+    
     if (trimmed.startsWith('zeppelin-daemon.sh')) {
       return `[Zeppelin Notebook Server] Starting Web UI server on http://localhost:8080...
 ✓ Zeppelin Daemon started successfully (Interpreters: Spark, Hive, Shell, Presto active).`;
     }
 
-    // Apache Tez DAG Engine
+    
     if (trimmed.startsWith('tez-job.sh') || trimmed.startsWith('tez')) {
       if (!this.isYARNStarted) return `Tez Error: YARN ResourceManager is STOPPED. Run 'start-yarn.sh'.`;
       return `[Apache Tez Engine] Compiling DAG (Vertices: 3, Edges: 2)...
@@ -310,7 +370,7 @@ Fetched 2 row(s) in 0.015s`;
 ✓ Tez DAG Execution Succeeded. Bypassed intermediate HDFS disk writes.`;
     }
 
-    // Apache Phoenix SQL over HBase
+    
     if (trimmed.startsWith('phoenix-sqlline')) {
       return `Building JDBC Connection to HBase Zookeeper [localhost:2181]...
 Connected to: Phoenix (version 5.1)
@@ -323,7 +383,7 @@ Connected to: Phoenix (version 5.1)
 1 row selected (0.042 seconds)`;
     }
 
-    // Presto / Trino Query Engine
+    
     if (trimmed.startsWith('presto') || trimmed.startsWith('trino')) {
       return `Presto/Trino Distributed Engine:
 id   region   product   amount
@@ -333,7 +393,7 @@ id   region   product   amount
 Query 20260825_0001, FINISHED, 4 nodes`;
     }
 
-    // Apache Pig Engine
+    
     if (trimmed.startsWith('pig')) {
       return `[Pig Latin Engine] Compiling Pig script into MapReduce DAG...
 (1, North, Laptop, 1200.0)
@@ -341,7 +401,7 @@ Query 20260825_0001, FINISHED, 4 nodes`;
 ✓ Pig Job Complete. 2 tuples emitted.`;
     }
 
-    // Ranger Authorization Policy Inspector
+    
     if (trimmed.startsWith('ranger policy')) {
       return `Apache Ranger Security Policies:
   ID   Resource               Service   Permission   Users
@@ -350,19 +410,19 @@ Query 20260825_0001, FINISHED, 4 nodes`;
   3    users                  HBase     read, write  Hacker`;
     }
 
-    // Kafka Streaming Producer/Topics
+    
     if (trimmed.startsWith('kafka-topics.sh')) {
       return `Created topic logs on Kafka cluster [localhost:9092] (Partitions: 3, ReplicationFactor: 2)`;
     }
 
-    // Flume Stream Ingestion
+    
     if (trimmed.startsWith('flume-ng')) {
       if (!this.isHDFSStarted) return `Flume Error: Cannot ingest stream. HDFS NameNode is STOPPED. Run 'start-dfs.sh'.`;
       return `[Flume Agent a1] Ingesting event stream -> HDFS sink (/Hacker/flume_stream)
 ✓ Stream Event Sink active (Ingested 500 events/sec into HDFS).`;
     }
 
-    // Oozie Workflow Engine
+    
     if (trimmed.startsWith('oozie job')) {
       if (!this.isYARNStarted) return `Oozie Error: YARN ResourceManager is STOPPED. Run 'start-yarn.sh'.`;
       return `Job ID: 0000001-${Date.now()}-oozie-oozi-W
@@ -370,7 +430,7 @@ Query 20260825_0001, FINISHED, 4 nodes`;
 ✓ Workflow status: SUCCEEDED`;
     }
 
-    // Kerberos authentication
+    
     if (trimmed.startsWith('kinit')) {
       const principal = trimmed.split(/\s+/)[1] || 'Hacker@HADOOP.LOCAL';
       this.kerberosTicket = principal;
@@ -392,14 +452,14 @@ ${new Date().toISOString()}  ${new Date(Date.now() + 86400000).toISOString()}  k
       return `✓ Kerberos ticket cache destroyed.`;
     }
 
-    // Hive SQL engine
+    
     if (trimmed.startsWith('hive -e')) {
       const sqlMatch = trimmed.match(/hive\s+-e\s+["']([^"']+)["']/i);
       if (!sqlMatch) return `Usage: hive -e "SELECT ... FROM ..."`;
       return this.hiveEngine.executeSQL(sqlMatch[1]);
     }
 
-    // HBase NoSQL engine
+    
     if (trimmed.startsWith('hbase shell')) {
       if (trimmed.includes('-c')) {
         const cmdMatch = trimmed.match(/hbase\s+shell\s+-c\s+["']([^"']+)["']/i);
@@ -415,7 +475,7 @@ users
 1 row(s) in 0.0510 seconds`;
     }
 
-    // Spark Submit engine
+    
     if (trimmed.startsWith('spark-submit')) {
       if (!this.isYARNStarted) {
         return `Spark Error: YARN ResourceManager is STOPPED. Run 'start-yarn.sh' to start YARN.`;
@@ -426,7 +486,7 @@ users
 ✓ Spark Job Executed Successfully. Output written to HDFS.`;
     }
 
-    // Sqoop import engine
+    
     if (trimmed.startsWith('sqoop import')) {
       if (!this.isHDFSStarted) {
         return `Sqoop Error: HDFS NameNode is STOPPED. Run 'start-dfs.sh' to start HDFS.`;
@@ -456,7 +516,7 @@ users
       return this.executeLinuxCommand(cmd);
     }
 
-    // Strict reality checks: Daemon must be started
+    
     if (cmd.utility === 'hdfs') {
       if (!this.isHDFSStarted) {
         return `ls: Cannot connect to NameNode at localhost:9000. Connection refused.
@@ -492,6 +552,7 @@ Run 'start-yarn.sh' or 'start-all.sh' to start YARN services.`;
 
     if (act.startsWith('start-dfs')) {
       this.isHDFSStarted = true;
+      this.persistShellState();
       return `Starting namenodes on [localhost]
 Starting datanodes on [datanode1.hadoop.local, datanode2.hadoop.local, datanode3.hadoop.local]
 Starting secondary namenodes [localhost]
@@ -500,6 +561,7 @@ Starting secondary namenodes [localhost]
 
     if (act.startsWith('stop-dfs')) {
       this.isHDFSStarted = false;
+      this.persistShellState();
       return `Stopping datanodes on [datanode1.hadoop.local, datanode2.hadoop.local, datanode3.hadoop.local]
 Stopping namenodes on [localhost]
 Stopping secondary namenodes [localhost]
@@ -508,6 +570,7 @@ Stopping secondary namenodes [localhost]
 
     if (act.startsWith('start-yarn')) {
       this.isYARNStarted = true;
+      this.persistShellState();
       return `Starting resourcemanager on [localhost]
 Starting nodemanagers on [datanode1.hadoop.local, datanode2.hadoop.local, datanode3.hadoop.local]
 ✓ YARN Capacity Scheduler daemons initialized successfully.`;
@@ -515,6 +578,7 @@ Starting nodemanagers on [datanode1.hadoop.local, datanode2.hadoop.local, datano
 
     if (act.startsWith('stop-yarn')) {
       this.isYARNStarted = false;
+      this.persistShellState();
       return `Stopping nodemanagers on [datanode1.hadoop.local, datanode2.hadoop.local, datanode3.hadoop.local]
 Stopping resourcemanager on [localhost]
 ✓ YARN daemons stopped cleanly.`;
@@ -523,6 +587,7 @@ Stopping resourcemanager on [localhost]
     if (act.startsWith('start-all')) {
       this.isHDFSStarted = true;
       this.isYARNStarted = true;
+      this.persistShellState();
       return `Starting HDFS & YARN services...
 Starting namenodes on [localhost]
 Starting datanodes on [datanode1.hadoop.local, datanode2.hadoop.local, datanode3.hadoop.local]
@@ -534,6 +599,7 @@ Starting nodemanagers on [datanode1.hadoop.local, datanode2.hadoop.local, datano
     if (act.startsWith('stop-all')) {
       this.isHDFSStarted = false;
       this.isYARNStarted = false;
+      this.persistShellState();
       return `Stopping all Hadoop cluster daemons...
 Stopping nodemanagers & resourcemanager...
 Stopping datanodes & namenode...
@@ -575,7 +641,7 @@ undefined
         }
       }
 
-      // Execute JavaScript code dynamically using new Function with custom log capturing
+      
       const logs: string[] = [];
       const customConsole = {
         log: (...logArgs: any[]) => logs.push(logArgs.map((a) => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ')),
@@ -654,10 +720,18 @@ MiB Swap:   2048.0 total,   2048.0 free,      0.0 used.   7168.0 avail Mem
     }
 
     if (act === 'df') {
-      return `Filesystem      Size  Used Avail Use% Mounted on
-/dev/sda1       250G   45G  205G  18% /
-tmpfs           8.0G     0  8.0G   0% /dev/shm`;
+      const usedMB = (this.cachedStorageUsage / (1024 * 1024)).toFixed(1);
+      const quotaMB = (this.cachedStorageQuota / (1024 * 1024)).toFixed(1);
+      const availMB = ((this.cachedStorageQuota - this.cachedStorageUsage) / (1024 * 1024)).toFixed(1);
+      const usePct = this.cachedStorageQuota > 0
+        ? ((this.cachedStorageUsage / this.cachedStorageQuota) * 100).toFixed(0)
+        : '0';
+      return `Filesystem               Size      Used     Avail    Use%  Mounted on
+hadoop-lab (IndexedDB)   ${quotaMB}M    ${usedMB}M    ${availMB}M   ${usePct}%   /
+SW Cache                 ${(this.cachedStorageUsage * 0.3 / (1024*1024)).toFixed(1)}M    ${(this.cachedStorageUsage * 0.3 / (1024*1024)).toFixed(1)}M    0.0M  100%   /sw-cache`;
     }
+
+
 
     if (act === 'free') {
       return `               total        used        free      shared  buff/cache   available
@@ -686,6 +760,7 @@ Swap:           2048           0        2048`;
       const resolved = this.resolveLocalPath(target);
       if (this.localDirs.has(resolved)) {
         this.localDir = resolved;
+        this.persistShellState();
         return '';
       }
       return `cd: no such file or directory: ${target}`;
@@ -695,6 +770,7 @@ Swap:           2048           0        2048`;
       if (args.length === 0) return 'mkdir: missing operand';
       const target = this.resolveLocalPath(args[0]);
       this.localDirs.add(target);
+      this.db.saveLocalDir(target);
       return `✓ Created local directory: ${target}`;
     }
 
@@ -703,6 +779,7 @@ Swap:           2048           0        2048`;
       const target = this.resolveLocalPath(args[0]);
       if (!this.localFiles.has(target)) {
         this.localFiles.set(target, '');
+        this.db.saveLocalFile(target, '');
       }
       return '';
     }
@@ -798,12 +875,15 @@ Swap:           2048           0        2048`;
       let deleted = false;
       if (this.localFiles.has(target)) {
         this.localFiles.delete(target);
+        this.db.deleteLocalFile(target);
         deleted = true;
       }
       if (this.localDirs.has(target)) {
         this.localDirs.delete(target);
+        this.db.deleteLocalDir(target);
         deleted = true;
       }
+
       return deleted ? `✓ Removed local path: ${args[0]}` : `rm: cannot remove '${args[0]}': No such file or directory`;
     }
 

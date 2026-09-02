@@ -19,9 +19,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ backend }) => {
 
   return (
     <div className="flex-1 bg-slate-950 p-6 overflow-y-auto space-y-6">
-      {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Health */}
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
           <div>
             <div className="text-xs text-slate-400 font-medium">Cluster Health Score</div>
@@ -35,7 +33,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ backend }) => {
           </div>
         </div>
 
-        {/* Storage */}
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
           <div>
             <div className="text-xs text-slate-400 font-medium">HDFS Storage Capacity</div>
@@ -47,7 +44,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ backend }) => {
           </div>
         </div>
 
-        {/* DataNodes */}
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
           <div>
             <div className="text-xs text-slate-400 font-medium">Live DataNodes</div>
@@ -61,7 +57,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ backend }) => {
           </div>
         </div>
 
-        {/* MapReduce Jobs */}
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
           <div>
             <div className="text-xs text-slate-400 font-medium">MapReduce Jobs</div>
@@ -74,7 +69,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ backend }) => {
         </div>
       </div>
 
-      {/* Cluster Health Diagnostics Card */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
@@ -109,7 +103,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ backend }) => {
         </div>
       </div>
 
-      {/* Real-time Event Stream */}
       <EventStreamConsole backend={backend} />
     </div>
   );

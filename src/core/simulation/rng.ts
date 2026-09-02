@@ -1,4 +1,4 @@
-// Seeded Mulberry32 Pseudo-Random Number Generator for Deterministic Replay
+
 export class SeededRNG {
   private state: number;
 

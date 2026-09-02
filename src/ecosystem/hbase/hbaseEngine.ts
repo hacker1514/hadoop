@@ -1,9 +1,9 @@
 export class HBaseEngine {
-  // table -> row -> family:column -> value
+  
   private tables: Map<string, Map<string, Map<string, string>>> = new Map();
 
   constructor() {
-    // Seed default sample table: users
+    
     const users = new Map<string, Map<string, string>>();
     const row1 = new Map<string, string>();
     row1.set('info:name', 'Hacker');

@@ -60,7 +60,6 @@ export const TerminalWindow: React.FC<TerminalWindowProps> = ({ backend }) => {
 
   return (
     <div className="flex-1 bg-slate-950 flex flex-col font-mono text-sm overflow-hidden border border-slate-800 rounded-xl shadow-2xl m-4">
-      {/* Terminal Title Bar */}
       <div className="bg-slate-900 border-b border-slate-800 px-4 py-2 flex items-center justify-between">
         <div className="flex items-center space-x-2 text-slate-300 font-semibold">
           <TerminalIcon className="w-4 h-4 text-sky-400" />
@@ -73,7 +72,6 @@ export const TerminalWindow: React.FC<TerminalWindowProps> = ({ backend }) => {
         </div>
       </div>
 
-      {/* Output Console */}
       <div className="flex-1 p-4 overflow-y-auto space-y-4 text-slate-200">
         <div className="text-slate-500 text-xs border-b border-slate-800 pb-2">
           Welcome to the Browser-Based Hadoop Practice Laboratory Terminal.
@@ -95,7 +93,6 @@ export const TerminalWindow: React.FC<TerminalWindowProps> = ({ backend }) => {
         <div ref={bottomRef} />
       </div>
 
-      {/* Autocomplete Suggestion Bar */}
       {suggestions.length > 0 && (
         <div className="bg-slate-900/90 border-t border-slate-800 px-4 py-1.5 flex items-center space-x-3 text-xs text-slate-400">
           <Sparkles className="w-3.5 h-3.5 text-sky-400" />
@@ -115,7 +112,6 @@ export const TerminalWindow: React.FC<TerminalWindowProps> = ({ backend }) => {
         </div>
       )}
 
-      {/* Input Command Line */}
       <div className="bg-slate-900 border-t border-slate-800 px-4 py-2.5 flex items-center space-x-2">
         <span className="text-sky-400 font-bold">$</span>
         <input

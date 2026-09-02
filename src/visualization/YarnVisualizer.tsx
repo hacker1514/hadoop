@@ -13,7 +13,7 @@ export const YarnVisualizer: React.FC<YarnVisualizerProps> = ({ backend }) => {
 
   return (
     <div className="flex-1 bg-slate-950 p-6 overflow-y-auto space-y-6">
-      {/* Title */}
+      {}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
@@ -29,7 +29,7 @@ export const YarnVisualizer: React.FC<YarnVisualizerProps> = ({ backend }) => {
         </span>
       </div>
 
-      {/* Queues Section */}
+      {}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
         <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider">YARN Queue Capacity Utilization</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -56,7 +56,7 @@ export const YarnVisualizer: React.FC<YarnVisualizerProps> = ({ backend }) => {
         </div>
       </div>
 
-      {/* NodeManager Containers Matrix */}
+      {}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
         <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider">NodeManager Resources & Allocated Containers</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

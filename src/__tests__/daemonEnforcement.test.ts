@@ -21,11 +21,11 @@ describe('Strict Daemon Lifecycle Enforcement & Clean HDFS Root', () => {
     const backend = new SimulatorBackend();
     backend.executeCLI('start-dfs.sh');
 
-    // Local file about.txt
+    
     const localCat = backend.executeCLI('cat about.txt');
     expect(localCat).toContain('BROWSER-BASED HADOOP SIMULATOR');
 
-    // Create HDFS directory & upload
+    
     backend.executeCLI('hdfs dfs -mkdir /Hacker');
     const putOut = backend.executeCLI('hdfs dfs -put about.txt /Hacker/about.txt');
     expect(putOut).toContain('Copied from Local');

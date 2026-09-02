@@ -1,4 +1,4 @@
-// Core Domain Types for Browser-Based Hadoop Simulator
+
 
 export type NodeId = string;
 export type BlockId = string;
@@ -8,7 +8,7 @@ export type ContainerId = string;
 export type AppId = string;
 export type PathString = string;
 
-// Finite State Machine State Enums
+
 export type DataNodeState = 'NEW' | 'STARTING' | 'RUNNING' | 'UNHEALTHY' | 'DEAD' | 'RECOVERING';
 export type NameNodeState = 'STARTING' | 'SAFE_MODE' | 'ACTIVE' | 'STOPPED';
 export type TaskState = 'PENDING' | 'SCHEDULED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'KILLED';

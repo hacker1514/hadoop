@@ -10,7 +10,7 @@ export const ClusterVisualizer: React.FC<ClusterVisualizerProps> = ({ backend })
   const nn = backend.getNameNode();
   const dataNodes = nn.getDataNodes();
 
-  // Group nodes by rack
+  
   const rackMap = new Map<string, typeof dataNodes>();
   dataNodes.forEach((dn) => {
     if (!rackMap.has(dn.rackId)) rackMap.set(dn.rackId, []);
@@ -19,7 +19,7 @@ export const ClusterVisualizer: React.FC<ClusterVisualizerProps> = ({ backend })
 
   return (
     <div className="flex-1 bg-slate-950 p-6 overflow-y-auto space-y-6">
-      {/* Title Bar */}
+      {}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
@@ -35,7 +35,7 @@ export const ClusterVisualizer: React.FC<ClusterVisualizerProps> = ({ backend })
         </div>
       </div>
 
-      {/* NameNode Box */}
+      {}
       <div className="bg-slate-900 border-2 border-sky-500/40 rounded-xl p-5 shadow-lg relative">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-3">
@@ -68,7 +68,7 @@ export const ClusterVisualizer: React.FC<ClusterVisualizerProps> = ({ backend })
         </div>
       </div>
 
-      {/* Racks Grid */}
+      {}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {Array.from(rackMap.entries()).map(([rackId, nodes]) => (
           <div key={rackId} className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-4">
@@ -111,7 +111,7 @@ export const ClusterVisualizer: React.FC<ClusterVisualizerProps> = ({ backend })
                       </span>
                     </div>
 
-                    {/* Storage Bar */}
+                    {}
                     <div className="space-y-1">
                       <div className="flex justify-between text-xs text-slate-400">
                         <span>Storage Used: {usedMb} MB / {capMb} MB</span>
@@ -125,7 +125,7 @@ export const ClusterVisualizer: React.FC<ClusterVisualizerProps> = ({ backend })
                       </div>
                     </div>
 
-                    {/* Block Badges */}
+                    {}
                     <div className="mt-3 pt-2 border-t border-slate-800/80 flex flex-wrap gap-1.5">
                       <span className="text-[10px] text-slate-500 mr-1">Stored Replicas:</span>
                       {dn.blocks.length === 0 ? (

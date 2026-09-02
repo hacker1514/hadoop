@@ -18,7 +18,7 @@ export const DebugInspector: React.FC<DebugInspectorProps> = ({ backend }) => {
 
   return (
     <div className="flex-1 bg-slate-950 p-6 overflow-y-auto space-y-6">
-      {/* Header */}
+      {}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
@@ -31,7 +31,7 @@ export const DebugInspector: React.FC<DebugInspectorProps> = ({ backend }) => {
         </div>
       </div>
 
-      {/* Decision Explainer Card */}
+      {}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
         <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
           <HelpCircle className="w-4 h-4 text-sky-400" /> Ask "Explain Decision"

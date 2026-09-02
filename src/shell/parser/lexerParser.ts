@@ -24,12 +24,12 @@ export function parseHadoopCommand(input: string): ParsedCommand {
     return { raw: input, utility: 'help', flags: new Set(), positionalArgs: tokens.slice(1) };
   }
 
-  // Hadoop daemon scripts
+  
   if (['start-dfs.sh', 'start-dfs', 'stop-dfs.sh', 'stop-dfs', 'start-yarn.sh', 'start-yarn', 'stop-yarn.sh', 'stop-yarn', 'start-all.sh', 'start-all', 'stop-all.sh', 'stop-all'].includes(utilityStr)) {
     return { raw: input, utility: 'script', action: utilityStr, flags: new Set(), positionalArgs: tokens.slice(1) };
   }
 
-  // Linux basic commands & Node.js
+  
   if (['ls', 'pwd', 'cd', 'mkdir', 'echo', 'cat', 'rm', 'touch', 'whoami', 'grep', 'wc', 'head', 'tail', 'history', 'top', 'df', 'free', 'uname', 'ifconfig', 'ip', 'ping', 'netstat', 'ps', 'kill', 'killall', 'sort', 'uniq', 'node'].includes(utilityStr)) {
     return { raw: input, utility: 'linux', action: utilityStr, flags: new Set(), positionalArgs: tokens.slice(1) };
   }

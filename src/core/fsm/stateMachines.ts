@@ -7,7 +7,7 @@ export class FSMError extends Error {
   }
 }
 
-// DataNode State Machine
+
 const DATANODE_TRANSITIONS: Record<DataNodeState, DataNodeState[]> = {
   NEW: ['STARTING'],
   STARTING: ['RUNNING', 'UNHEALTHY', 'DEAD'],
@@ -26,7 +26,7 @@ export function transitionDataNode(current: DataNodeState, next: DataNodeState):
   return next;
 }
 
-// NameNode State Machine
+
 const NAMENODE_TRANSITIONS: Record<NameNodeState, NameNodeState[]> = {
   STARTING: ['SAFE_MODE'],
   SAFE_MODE: ['ACTIVE', 'STOPPED'],
@@ -43,7 +43,7 @@ export function transitionNameNode(current: NameNodeState, next: NameNodeState):
   return next;
 }
 
-// Task State Machine (Mapper & Reducer)
+
 const TASK_TRANSITIONS: Record<TaskState, TaskState[]> = {
   PENDING: ['SCHEDULED', 'KILLED'],
   SCHEDULED: ['RUNNING', 'KILLED', 'FAILED'],
@@ -62,7 +62,7 @@ export function transitionTask(current: TaskState, next: TaskState): TaskState {
   return next;
 }
 
-// Container State Machine
+
 const CONTAINER_TRANSITIONS: Record<ContainerState, ContainerState[]> = {
   REQUESTED: ['ALLOCATED', 'EXPIRED'],
   ALLOCATED: ['ACQUIRED', 'EXPIRED', 'RELEASED'],
@@ -81,7 +81,7 @@ export function transitionContainer(current: ContainerState, next: ContainerStat
   return next;
 }
 
-// Block State Machine
+
 const BLOCK_TRANSITIONS: Record<BlockState, BlockState[]> = {
   CREATING: ['RBW', 'FINALIZED'],
   RBW: ['FINALIZED', 'CORRUPTED'],

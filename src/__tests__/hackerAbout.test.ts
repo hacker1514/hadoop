@@ -6,7 +6,7 @@ describe('Default HDFS Lifecycle & /Hacker/about.txt Upload', () => {
     const backend = new SimulatorBackend();
     backend.executeCLI('start-dfs.sh');
 
-    // Create HDFS directory & upload
+    
     backend.executeCLI('hdfs dfs -mkdir /Hacker');
     backend.executeCLI('hdfs dfs -put about.txt /Hacker/about.txt');
 

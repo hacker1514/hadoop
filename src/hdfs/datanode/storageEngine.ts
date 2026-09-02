@@ -23,7 +23,7 @@ export class VirtualStorageEngine {
   public async writeBlockData(blockId: BlockId, data: Uint8Array): Promise<void> {
     this.inMemoryBlocks.set(blockId, data);
 
-    // Save to IndexedDB async
+    
     if (typeof window !== 'undefined' && 'indexedDB' in window) {
       try {
         const request = indexedDB.open(this.dbName, 1);

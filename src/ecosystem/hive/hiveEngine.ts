@@ -13,7 +13,7 @@ export class HiveEngine {
   private tables: Map<string, HiveTable> = new Map();
 
   constructor() {
-    // Seed default sample table: sales
+    
     this.tables.set('sales', {
       name: 'sales',
       columns: [
@@ -125,7 +125,7 @@ export class HiveEngine {
 
       let rows = [...table.rows];
 
-      // Handle WHERE clause
+      
       const whereIdx = lower.indexOf('where');
       if (whereIdx !== -1) {
         const cond = trimmed.substring(whereIdx + 5).trim();

@@ -6,16 +6,16 @@ describe('Advanced HDFS Management & Streaming Pipeline Test', () => {
     const backend = new SimulatorBackend();
     backend.executeCLI('start-dfs.sh');
 
-    // Storage policies
+    
     const polOut = backend.executeCLI('hdfs storagepolicies -listPolicies');
     expect(polOut).toContain('HOT');
     expect(polOut).toContain('COLD');
 
-    // Erasure coding
+    
     const ecOut = backend.executeCLI('hdfs ec -listPolicies');
     expect(ecOut).toContain('RS-6-3-1024k');
 
-    // Cache admin
+    
     const cacheOut = backend.executeCLI('hdfs cacheadmin -addDirective -path /Hacker -pool pool1');
     expect(cacheOut).toContain('Added cache directive');
   });

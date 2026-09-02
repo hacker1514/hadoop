@@ -68,7 +68,7 @@ export class HDFSNamespace {
         if (i < parts.length - 1 && !recursive) {
           throw new Error(`Parent directory does not exist: ${currentPath}`);
         }
-        // Quota verification
+        
         if (current.quotaNamespace && current.children.size >= current.quotaNamespace) {
           throw new HDFSQuotaError(`Namespace quota exceeded on directory ${current.path}`);
         }

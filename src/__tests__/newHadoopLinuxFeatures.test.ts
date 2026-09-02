@@ -7,16 +7,16 @@ describe('New Linux & Real Hadoop YARN Logs Features', () => {
     backend.executeCLI('pwd');
     backend.executeCLI('whoami');
 
-    // history
+    
     const histOut = backend.executeCLI('history');
     expect(histOut).toContain('pwd');
     expect(histOut).toContain('whoami');
 
-    // grep
+    
     const grepOut = backend.executeCLI('grep HDFS about.txt');
     expect(grepOut).toContain('HDFS');
 
-    // wc
+    
     const wcOut = backend.executeCLI('wc about.txt');
     expect(wcOut).toContain('about.txt');
   });

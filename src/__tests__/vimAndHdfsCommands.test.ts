@@ -7,15 +7,15 @@ describe('Vim Editor Integration & Full HDFS Command Suite', () => {
     backend.executeCLI('start-dfs.sh');
     backend.executeCLI('hdfs dfs -put about.txt /Hacker/about.txt');
 
-    // Create 0-byte file with touchz
+    
     const touchzOut = backend.executeCLI('hdfs dfs -touchz /Hacker/zero.txt');
     expect(touchzOut).toContain('Created empty 0-byte HDFS file');
 
-    // Copy file with -cp
+    
     const cpOut = backend.executeCLI('hdfs dfs -cp /Hacker/about.txt /Hacker/about_copy.txt');
     expect(cpOut).toContain('Copied in HDFS');
 
-    // Move file with -mv
+    
     const mvOut = backend.executeCLI('hdfs dfs -mv /Hacker/about_copy.txt /Hacker/about_moved.txt');
     expect(mvOut).toContain('Moved in HDFS');
 

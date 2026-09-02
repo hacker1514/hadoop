@@ -26,14 +26,14 @@ describe('Linux Commands, Daemon Scripts & Local <-> HDFS Copy', () => {
     const backend = new SimulatorBackend();
     backend.executeCLI('start-dfs.sh');
 
-    // Create local file
+    
     backend.executeCLI('echo "data from local" > local_sample.txt');
 
-    // Copy to HDFS
+    
     const putOut = backend.executeCLI('hdfs dfs -put local_sample.txt /Hacker/local_sample.txt');
     expect(putOut).toContain('Copied from Local');
 
-    // Cat from HDFS
+    
     const hdfsCat = backend.executeCLI('hdfs dfs -cat /Hacker/local_sample.txt');
     expect(hdfsCat).toContain('data from local');
   });
@@ -42,14 +42,14 @@ describe('Linux Commands, Daemon Scripts & Local <-> HDFS Copy', () => {
     const backend = new SimulatorBackend();
     backend.executeCLI('start-dfs.sh');
 
-    // Put about.txt into HDFS
+    
     backend.executeCLI('hdfs dfs -put about.txt /Hacker/about.txt');
 
-    // Copy about.txt from HDFS to local FS
+    
     const getOut = backend.executeCLI('hdfs dfs -get /Hacker/about.txt downloaded_about.txt');
     expect(getOut).toContain('Copied from HDFS');
 
-    // Read downloaded local file
+    
     const localCat = backend.executeCLI('cat downloaded_about.txt');
     expect(localCat).toContain('BROWSER-BASED HADOOP SIMULATOR');
   });

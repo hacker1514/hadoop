@@ -27,7 +27,7 @@ export const EventStreamConsole: React.FC<EventStreamConsoleProps> = ({ backend 
           </h3>
         </div>
 
-        {/* Category Filters */}
+        {}
         <div className="flex items-center space-x-1.5 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
           <Filter className="w-3.5 h-3.5 text-slate-500 ml-1 mr-1" />
           {categories.map((cat) => (
@@ -46,7 +46,7 @@ export const EventStreamConsole: React.FC<EventStreamConsoleProps> = ({ backend 
         </div>
       </div>
 
-      {/* Events Log List */}
+      {}
       <div className="bg-slate-950 border border-slate-800 rounded-lg p-3 h-64 overflow-y-auto font-mono text-xs space-y-2">
         {filteredEvents.length === 0 ? (
           <div className="text-slate-600 italic text-center py-10">No event logs recorded for this category yet.</div>

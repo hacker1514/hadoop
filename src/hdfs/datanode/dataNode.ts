@@ -40,14 +40,14 @@ export class DataNodeInstance {
       containers: []
     };
 
-    // Transition state
+    
     this.node.state = transitionDataNode('NEW', 'STARTING');
     this.node.state = transitionDataNode('STARTING', 'RUNNING');
 
-    // Register with NameNode
+    
     this.nameNode.registerDataNode(this.node);
 
-    // Schedule heartbeats
+    
     this.scheduleHeartbeats();
   }
 

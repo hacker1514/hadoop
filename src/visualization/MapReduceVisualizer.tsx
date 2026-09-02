@@ -12,7 +12,7 @@ export const MapReduceVisualizer: React.FC<MapReduceVisualizerProps> = ({ backen
 
   return (
     <div className="flex-1 bg-slate-950 p-6 overflow-y-auto space-y-6">
-      {/* Header */}
+      {}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
@@ -42,7 +42,7 @@ export const MapReduceVisualizer: React.FC<MapReduceVisualizerProps> = ({ backen
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Job Overview Card */}
+          {}
           <div className="bg-slate-900 border border-amber-500/30 rounded-xl p-5 shadow-lg space-y-4">
             <div className="flex items-center justify-between">
               <div>
@@ -54,7 +54,7 @@ export const MapReduceVisualizer: React.FC<MapReduceVisualizerProps> = ({ backen
               </span>
             </div>
 
-            {/* Progress Bars */}
+            {}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
               <div className="space-y-1">
                 <div className="flex justify-between text-slate-400">
@@ -77,9 +77,9 @@ export const MapReduceVisualizer: React.FC<MapReduceVisualizerProps> = ({ backen
             </div>
           </div>
 
-          {/* Pipeline Flowchart */}
+          {}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 items-stretch text-xs">
-            {/* Stage 1: Input */}
+            {}
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
               <div className="font-bold text-sky-400 mb-2 border-b border-slate-800 pb-1">1. HDFS Input</div>
               <div className="text-slate-300 font-mono bg-slate-950 p-2 rounded border border-slate-800">
@@ -88,7 +88,7 @@ export const MapReduceVisualizer: React.FC<MapReduceVisualizerProps> = ({ backen
               <div className="text-[10px] text-slate-500 mt-2">{activeJob.numMapTasks} InputSplit(s)</div>
             </div>
 
-            {/* Stage 2: Mappers */}
+            {}
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
               <div className="font-bold text-sky-400 mb-2 border-b border-slate-800 pb-1">2. Map Tasks ({activeJob.mapTasks.length})</div>
               <div className="space-y-2">
@@ -103,7 +103,7 @@ export const MapReduceVisualizer: React.FC<MapReduceVisualizerProps> = ({ backen
               </div>
             </div>
 
-            {/* Stage 3: Shuffle / Sort */}
+            {}
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
               <div className="font-bold text-purple-400 mb-2 border-b border-slate-800 pb-1">3. Shuffle & Sort</div>
               <div className="text-center py-4 bg-slate-950 rounded border border-slate-800 text-slate-400 font-mono text-[11px]">
@@ -114,7 +114,7 @@ export const MapReduceVisualizer: React.FC<MapReduceVisualizerProps> = ({ backen
               <div className="text-[10px] text-slate-500 text-center">Data Locality Aware</div>
             </div>
 
-            {/* Stage 4: Reducers */}
+            {}
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
               <div className="font-bold text-amber-400 mb-2 border-b border-slate-800 pb-1">4. Reduce Tasks ({activeJob.reduceTasks.length})</div>
               <div className="space-y-2">
@@ -129,7 +129,7 @@ export const MapReduceVisualizer: React.FC<MapReduceVisualizerProps> = ({ backen
               </div>
             </div>
 
-            {/* Stage 5: Output */}
+            {}
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
               <div className="font-bold text-emerald-400 mb-2 border-b border-slate-800 pb-1">5. HDFS Output</div>
               <div className="text-slate-300 font-mono bg-slate-950 p-2 rounded border border-slate-800">

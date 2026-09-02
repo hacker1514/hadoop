@@ -31,7 +31,7 @@ export class VirtualNetwork {
     const existing = this.links.get(key);
     if (existing) return existing;
 
-    // Default network properties based on rack distance
+    
     const dist = this.getRackDistance(nodeA, nodeB);
     const defaultLink: NetworkLink = {
       sourceNodeId: nodeA,
@@ -51,7 +51,7 @@ export class VirtualNetwork {
       return { transferTimeMs: Infinity, isFailed: true };
     }
 
-    // Check packet loss failure simulation
+    
     if (link.packetLossPercent > 0 && Math.random() * 100 < link.packetLossPercent) {
       return { transferTimeMs: link.latencyMs * 5, isFailed: true };
     }

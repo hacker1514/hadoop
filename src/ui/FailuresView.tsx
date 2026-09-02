@@ -34,7 +34,6 @@ export const FailuresView: React.FC<FailuresViewProps> = ({ backend }) => {
 
   return (
     <div className="flex-1 bg-slate-950 p-6 overflow-y-auto space-y-6">
-      {/* Title */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-slate-100 flex items-center gap-2">
@@ -47,9 +46,7 @@ export const FailuresView: React.FC<FailuresViewProps> = ({ backend }) => {
         </div>
       </div>
 
-      {/* Control Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Node Failure Control */}
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
           <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
             <Power className="w-4 h-4 text-red-400" /> DataNode Crash & Recovery
@@ -85,7 +82,6 @@ export const FailuresView: React.FC<FailuresViewProps> = ({ backend }) => {
           </div>
         </div>
 
-        {/* Block Corruption */}
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
           <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
             <Zap className="w-4 h-4 text-amber-400" /> Block Corruption Injection
@@ -101,7 +97,6 @@ export const FailuresView: React.FC<FailuresViewProps> = ({ backend }) => {
           </button>
         </div>
 
-        {/* Rack Disconnect */}
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
           <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
             <Network className="w-4 h-4 text-purple-400" /> Network Rack Isolation
@@ -132,7 +127,6 @@ export const FailuresView: React.FC<FailuresViewProps> = ({ backend }) => {
         </div>
       </div>
 
-      {/* Log Feedback */}
       {logMessage && (
         <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl text-xs font-mono text-slate-300 flex items-center space-x-2">
           <ShieldCheck className="w-4 h-4 text-sky-400" />

@@ -7,6 +7,7 @@ import { VirtualNetwork } from '../network/virtualNetwork';
 import { FailureInjector } from '../../cluster/failures/failureInjector';
 import { ObservabilityService } from '../observability/observability';
 import { HadoopShellExecutor } from '../../shell/commands/commandRegistry';
+import { HadoopDB } from '../../storage/hadoopDB';
 
 export interface HadoopBackend {
   getBackendType(): 'SIMULATOR' | 'REAL_HADOOP';
@@ -21,6 +22,7 @@ export interface HadoopBackend {
   saveLocalFile(filePath: string, content: string): void;
   readLocalFile(filePath: string): string | undefined;
   getWorkingDir(): string;
+  initFromDB(): Promise<void>;
 }
 
 export class SimulatorBackend implements HadoopBackend {
@@ -33,14 +35,15 @@ export class SimulatorBackend implements HadoopBackend {
   private failureInjector: FailureInjector;
   private observability: ObservabilityService;
   private shellExecutor: HadoopShellExecutor;
+  private db: HadoopDB;
 
   constructor(numDataNodes: number = 3, numRacks: number = 2, seed: number = 12345) {
     this.engine = new SimulationEngine(seed);
     this.network = new VirtualNetwork();
     this.nameNode = new NameNode(this.engine);
     this.resourceManager = new ResourceManager(this.engine);
+    this.db = new HadoopDB();
 
-    // Initialize DataNodes across Racks
     for (let i = 1; i <= numDataNodes; i++) {
       const dnId = `dn-${i.toString().padStart(2, '0')}`;
       const rackIndex = ((i - 1) % numRacks) + 1;
@@ -52,7 +55,7 @@ export class SimulatorBackend implements HadoopBackend {
         dnId,
         hostname,
         rackId,
-        10 * 1024 * 1024 * 1024, // 10 GB
+        10 * 1024 * 1024 * 1024,
         this.nameNode,
         this.engine
       );
@@ -64,7 +67,11 @@ export class SimulatorBackend implements HadoopBackend {
     this.mapReduceEngine = new MapReduceEngine(this.engine, this.nameNode, this.resourceManager, this.network);
     this.failureInjector = new FailureInjector(this.nameNode, this.dataNodes, this.network, this.engine);
     this.observability = new ObservabilityService(this.nameNode, this.resourceManager, this.engine);
-    this.shellExecutor = new HadoopShellExecutor(this.nameNode, this.resourceManager, this.mapReduceEngine);
+    this.shellExecutor = new HadoopShellExecutor(this.nameNode, this.resourceManager, this.mapReduceEngine, this.db);
+  }
+
+  public async initFromDB(): Promise<void> {
+    await this.shellExecutor.loadFromDB();
   }
 
   public getBackendType(): 'SIMULATOR' | 'REAL_HADOOP' {

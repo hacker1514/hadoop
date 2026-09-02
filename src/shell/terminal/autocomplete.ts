@@ -24,7 +24,7 @@ export function getAutocompletions(input: string, namespace: HDFSNamespace): str
   const matches = COMMON_COMMANDS.filter((cmd) => cmd.startsWith(trimmed));
   if (matches.length > 0) return matches;
 
-  // Path autocompletion
+  
   if (trimmed.includes(' /') || trimmed.endsWith(' /') || trimmed.includes(' ')) {
     const parts = trimmed.split(' ');
     const lastToken = parts[parts.length - 1];

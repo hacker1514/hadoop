@@ -32,7 +32,7 @@ export class MapReduceEngine {
     const jobId = `job_${Date.now()}_${this.jobCounter.toString().padStart(4, '0')}`;
     const appId = `app_${Date.now()}_${this.jobCounter.toString().padStart(4, '0')}`;
 
-    // Read input file from HDFS
+    
     const inputFileNode = this.nameNode.getNamespace().resolvePath(inputPath);
     if (!inputFileNode || inputFileNode.type !== 'FILE') {
       throw new Error(`Input file not found in HDFS: ${inputPath}`);
@@ -68,7 +68,7 @@ export class MapReduceEngine {
       }
     };
 
-    // Create Map tasks
+    
     for (let i = 0; i < numMappers; i++) {
       const blockId = blocks[i];
 
@@ -90,7 +90,7 @@ export class MapReduceEngine {
       job.mapTasks.push(mapTask);
     }
 
-    // Create Reduce tasks
+    
     for (let j = 0; j < numReducers; j++) {
       const reduceTask: MapReduceTask = {
         id: `task_${jobId}_r_${j.toString().padStart(3, '0')}`,
@@ -121,7 +121,7 @@ export class MapReduceEngine {
       )
     );
 
-    // Start execution pipeline
+    
     this.executeJob(job, appId);
     return job;
   }
@@ -130,7 +130,7 @@ export class MapReduceEngine {
     job.state = 'RUNNING';
     job.startTime = this.engine.getClock().getTime();
 
-    // Schedule Mappers
+    
     job.mapTasks.forEach((mapTask, idx) => {
       const container = this.resourceManager.requestContainer(appId, 1024, 1, job.queue);
       if (container) {
@@ -153,7 +153,7 @@ export class MapReduceEngine {
           )
         );
 
-        // Simulate Mapper processing time (1500ms + stagger)
+        
         this.engine.scheduleEvent('MAP_COMPLETED', 'MAPREDUCE', mapTask.id, 1500 + idx * 300, () => {
           mapTask.state = transitionTask(mapTask.state, 'SUCCEEDED');
           mapTask.progressPercent = 100;
@@ -177,7 +177,7 @@ export class MapReduceEngine {
             )
           );
 
-          // If all Mappers completed, trigger Shuffle & Reducers
+          
           if (job.mapTasks.every((t) => t.state === 'SUCCEEDED')) {
             this.executeShuffleAndReduce(job, appId);
           }
@@ -197,7 +197,7 @@ export class MapReduceEngine {
       )
     );
 
-    // Schedule Reducers
+    
     job.reduceTasks.forEach((reduceTask, idx) => {
       const container = this.resourceManager.requestContainer(appId, 1024, 1, job.queue);
       if (container) {
@@ -216,7 +216,7 @@ export class MapReduceEngine {
           )
         );
 
-        // Simulate Reducer processing & writing output to HDFS
+        
         this.engine.scheduleEvent('REDUCE_COMPLETED', 'MAPREDUCE', reduceTask.id, 2000 + idx * 400, () => {
           reduceTask.state = transitionTask(reduceTask.state, 'SUCCEEDED');
           reduceTask.progressPercent = 100;
@@ -238,12 +238,12 @@ export class MapReduceEngine {
             )
           );
 
-          // If all Reducers completed, finish job
+          
           if (job.reduceTasks.every((t) => t.state === 'SUCCEEDED')) {
             job.state = 'SUCCEEDED';
             job.finishTime = this.engine.getClock().getTime();
 
-            // Create HDFS output file
+            
             const outputContent = `hadoop\t2\nhello\t2\nworld\t2\n`;
             const outPath = `${job.outputPath}/part-r-00000`;
             this.nameNode.createAndWriteFile(outPath, outputContent);

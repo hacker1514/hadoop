@@ -33,9 +33,8 @@ export class NameNode {
     this.placementPolicy = new BlockPlacementPolicyDefault();
     this.storageEngine = new VirtualStorageEngine();
 
-    // Start in Safemode
     this.state = transitionNameNode('STARTING', 'SAFE_MODE');
-    
+
     this.engine.scheduleEvent('NAMENODE_ENTER_SAFEMODE', 'HDFS', 'NameNode', 0, () => {});
 
     this.engine.scheduleEvent('NAMENODE_LEAVE_SAFEMODE', 'HDFS', 'NameNode', 1000, () => {
@@ -104,7 +103,6 @@ export class NameNode {
     const file = this.namespace.createFile(pathStr, totalSize, replicationFactor, blockSizeBytes);
     this.fileContentMap.set(file.path, textContent);
 
-    // Calculate blocks
     const numBlocks = Math.max(1, Math.ceil(totalSize / blockSizeBytes));
     const allDataNodes = this.getDataNodes();
 
