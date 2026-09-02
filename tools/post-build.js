@@ -39,7 +39,18 @@ function postBuild() {
     htmlContent = htmlContent.replace(/href="manifest-[^"]+"/g, 'href="./manifest.json"');
     fs.writeFileSync(distIndex, htmlContent, 'utf8');
     fs.writeFileSync(path.join(distDir, '404.html'), htmlContent, 'utf8');
-    console.log('✓ Fixed manifest.json href in dist/index.html & dist/404.html');
+    
+    // Copy compiled dist/index.html to root index.html and root 404.html for GitHub Pages
+    fs.copyFileSync(distIndex, path.join(rootDir, 'index.html'));
+    fs.copyFileSync(distIndex, path.join(rootDir, '404.html'));
+    console.log('✓ Synced compiled dist/index.html to root index.html & 404.html for GitHub Pages direct loading!');
+  }
+
+  // Copy dist/assets/ directory to root assets/ for GitHub Pages
+  const distAssets = path.join(distDir, 'assets');
+  if (fs.existsSync(distAssets)) {
+    copyRecursiveSync(distAssets, path.join(rootDir, 'assets'));
+    console.log('✓ Synced dist/assets/ -> root assets/ for GitHub Pages');
   }
 
   // Ensure public/manifest.json is copied to dist/manifest.json and root manifest.json

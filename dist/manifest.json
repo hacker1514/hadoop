@@ -1,8 +1,8 @@
 {
   "id": "hadoop-pwa",
-  "name": "Hadoop Simulator & Practice Lab",
+  "name": "Hadoop",
   "short_name": "Hadoop",
-  "description": "Simulate and practice Apache Hadoop, PySpark, KSQL, HDFS, and MapReduce directly in your browser — fully offline capable.",
+  "description": "Simulate and learn Apache Hadoop, PySpark, KSQL, HDFS, and MapReduce in your browser — fully offline capable.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -39,7 +39,7 @@
   ],
   "shortcuts": [
     {
-      "name": "Launch Hadoop",
+      "name": "Hadoop",
       "short_name": "Hadoop",
       "description": "Launch the Hadoop terminal simulator",
       "url": "./",
