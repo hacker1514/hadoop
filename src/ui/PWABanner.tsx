@@ -59,7 +59,12 @@ export const PWABanner: React.FC = () => {
     };
   }, []);
 
-  const handleInstall = async () => {
+  const handleInstall = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
     const promptEvent = installPrompt || (window as any).deferredPWAInstallPrompt;
 
     if (promptEvent) {
@@ -67,7 +72,7 @@ export const PWABanner: React.FC = () => {
       try {
         await promptEvent.prompt();
         const choice = await promptEvent.userChoice;
-        if (choice.outcome === 'accepted') {
+        if (choice && choice.outcome === 'accepted') {
           setInstallStatus('done');
           (window as any).deferredPWAInstallPrompt = null;
           setTimeout(() => {
@@ -82,7 +87,11 @@ export const PWABanner: React.FC = () => {
     }
   };
 
-  const handleDismiss = () => {
+  const handleDismiss = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     setShowInstallBanner(false);
   };
 
@@ -98,8 +107,8 @@ export const PWABanner: React.FC = () => {
           src="./logo.svg"
           alt="Hadoop"
           className="w-6 h-6 object-contain"
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.display = 'none';
+          onError={(ev) => {
+            (ev.target as HTMLImageElement).style.display = 'none';
           }}
         />
       </div>
@@ -115,6 +124,7 @@ export const PWABanner: React.FC = () => {
         </div>
       ) : (
         <button
+          type="button"
           onClick={handleInstall}
           disabled={installStatus === 'installing'}
           className="shrink-0 flex items-center gap-1.5 bg-black hover:bg-cyan-950 border border-cyan-400 text-cyan-400 hover:text-cyan-300 disabled:opacity-60 text-xs font-black px-3.5 py-2 rounded-lg transition-colors min-h-[36px] touch-manipulation cursor-pointer"
@@ -125,6 +135,7 @@ export const PWABanner: React.FC = () => {
       )}
 
       <button
+        type="button"
         onClick={handleDismiss}
         className="shrink-0 text-red-500 hover:text-red-400 transition-colors ml-0.5 p-1 touch-manipulation cursor-pointer"
         aria-label="Dismiss"

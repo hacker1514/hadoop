@@ -22,7 +22,7 @@ if ('serviceWorker' in navigator) {
         scope: './'
       });
 
-      setInterval(() => registration.update(), 60_000);
+      setInterval(() => registration.update(), 120_000);
 
       registration.addEventListener('updatefound', () => {
         const newWorker = registration.installing;
@@ -34,7 +34,6 @@ if ('serviceWorker' in navigator) {
             navigator.serviceWorker.controller
           ) {
             newWorker.postMessage('SKIP_WAITING');
-            window.location.reload();
           }
         });
       });
