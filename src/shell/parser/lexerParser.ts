@@ -36,7 +36,7 @@ export function parseHadoopCommand(input: string): ParsedCommand {
   }
 
   
-  if (['ls', 'pwd', 'cd', 'mkdir', 'echo', 'cat', 'rm', 'touch', 'whoami', 'grep', 'wc', 'head', 'tail', 'history', 'top', 'df', 'free', 'uname', 'ifconfig', 'ip', 'ping', 'netstat', 'ps', 'jps', 'kill', 'killall', 'sort', 'uniq', 'node', 'python', 'python3', 'cp', 'mv', 'hive', 'pig', 'download', 'get', 'spark', 'pyspark', 'spark-shell', 'spark-submit'].includes(utilityStr)) {
+  if (['ls', 'pwd', 'cd', 'mkdir', 'echo', 'cat', 'rm', 'touch', 'whoami', 'grep', 'wc', 'head', 'tail', 'history', 'top', 'df', 'free', 'uname', 'ifconfig', 'ip', 'ping', 'netstat', 'ps', 'jps', 'kill', 'killall', 'sort', 'uniq', 'node', 'python', 'python3', 'cp', 'mv', 'hive', 'pig', 'download', 'get', 'spark', 'pyspark', 'spark-shell', 'spark-submit', 'about'].includes(utilityStr)) {
     return { raw: input, utility: 'linux', action: utilityStr, flags: new Set(), positionalArgs: tokens.slice(1) };
   }
 

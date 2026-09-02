@@ -16,29 +16,16 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 );
 
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', async () => {
-    try {
-      const registration = await navigator.serviceWorker.register('./sw.js', {
-        scope: './'
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('./sw.js', { scope: './' })
+      .then((registration) => {
+        setInterval(() => {
+          registration.update().catch(() => {});
+        }, 120_000);
+      })
+      .catch((err) => {
+        console.warn('[PWA] ServiceWorker registration error:', err);
       });
-
-      setInterval(() => registration.update(), 120_000);
-
-      registration.addEventListener('updatefound', () => {
-        const newWorker = registration.installing;
-        if (!newWorker) return;
-
-        newWorker.addEventListener('statechange', () => {
-          if (
-            newWorker.state === 'installed' &&
-            navigator.serviceWorker.controller
-          ) {
-            newWorker.postMessage('SKIP_WAITING');
-          }
-        });
-      });
-    } catch (err) {
-      console.warn('[App] Service Worker registration failed:', err);
-    }
   });
 }

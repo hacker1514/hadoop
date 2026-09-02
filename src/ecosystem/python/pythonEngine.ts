@@ -233,9 +233,9 @@ sc = spark.sparkContext
         script.src = './pyodide/pyodide.js';
         script.async = true;
         document.head.appendChild(script);
-        await new Promise((resolve, reject) => {
+        await new Promise((resolve) => {
           script.onload = resolve;
-          script.onerror = reject;
+          script.onerror = resolve;
         });
       }
 

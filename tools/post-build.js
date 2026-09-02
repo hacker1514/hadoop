@@ -31,15 +31,26 @@ function postBuild() {
   fs.writeFileSync(path.join(distDir, '.nojekyll'), '');
   fs.writeFileSync(path.join(rootDir, '.nojekyll'), '');
 
-  // Copy dist/index.html to dist/404.html
+  // Copy dist/index.html to dist/404.html & fix manifest href
   const distIndex = path.join(distDir, 'index.html');
   if (fs.existsSync(distIndex)) {
-    fs.copyFileSync(distIndex, path.join(distDir, '404.html'));
-    console.log('✓ Created dist/404.html');
+    let htmlContent = fs.readFileSync(distIndex, 'utf8');
+    htmlContent = htmlContent.replace(/href="\.\/assets\/manifest-[^"]+"/g, 'href="./manifest.json"');
+    htmlContent = htmlContent.replace(/href="manifest-[^"]+"/g, 'href="./manifest.json"');
+    fs.writeFileSync(distIndex, htmlContent, 'utf8');
+    fs.writeFileSync(path.join(distDir, '404.html'), htmlContent, 'utf8');
+    console.log('✓ Fixed manifest.json href in dist/index.html & dist/404.html');
   }
 
-  // Copy public/dist files (manifest.json, sw.js, logo.svg, icons, hadoop_logo.jpg) to root
-  const rootFilesToCopy = ['manifest.json', 'sw.js', 'logo.svg', 'hadoop_logo.jpg'];
+  // Ensure public/manifest.json is copied to dist/manifest.json and root manifest.json
+  if (fs.existsSync(path.join(publicDir, 'manifest.json'))) {
+    fs.copyFileSync(path.join(publicDir, 'manifest.json'), path.join(distDir, 'manifest.json'));
+    fs.copyFileSync(path.join(publicDir, 'manifest.json'), path.join(rootDir, 'manifest.json'));
+    console.log('✓ Synced public/manifest.json to dist and root');
+  }
+
+  // Copy public/dist files (sw.js, logo.svg, hadoop_logo.jpg) to root
+  const rootFilesToCopy = ['sw.js', 'logo.svg', 'hadoop_logo.jpg'];
   rootFilesToCopy.forEach((fileName) => {
     const srcFile = fs.existsSync(path.join(distDir, fileName))
       ? path.join(distDir, fileName)

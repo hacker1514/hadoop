@@ -10,31 +10,45 @@ import { PythonEngine, transpilePythonToJS } from '../../ecosystem/python/python
 const ABOUT_GUIDE_CONTENT = `================================================================================
            BROWSER-BASED HADOOP SIMULATOR & PRACTICE LABORATORY GUIDE
 ================================================================================
-DEVELOPER  : Niranjan Kumar K
-ENVIRONMENT: Hadoop Simulation & Complete Enterprise Ecosystem Engine
+DEVELOPER     : Niranjan Kumar K
+DEPLOYMENT URL: https://hacker1514.github.io/hadoop/
+ENVIRONMENT   : Apache Hadoop, PySpark v3.3.0, KSQL SQLite WASM, HDFS & YARN Engine
 
 --------------------------------------------------------------------------------
-1. APACHE HADOOP ARCHITECTURE & ECOSYSTEM OVERVIEW
+1. ENTERPRISE ARCHITECTURE & ECOSYSTEM OVERVIEW
 --------------------------------------------------------------------------------
 - HDFS (Hadoop Distributed File System):
-  Fault-tolerant, rack-aware distributed filesystem for storing large datasets.
-  Blocks are split into 128MB chunks and replicated across multiple DataNodes.
+  Fault-tolerant, rack-aware distributed filesystem for storing datasets.
+  Full support for hdfs dfs utilities: -mkdir, -put, -get, -cat, -ls, -rm,
+  -chmod, -chown, -du, -df, -touchz, -checksum, -count, -find, block reports.
 
-- YARN (Yet Another Resource Negotiator):
-  Distributed resource management & job scheduling framework. Allocates CPU
-  vCores and Memory containers across NodeManagers using Capacity Schedulers.
+- YARN & MapReduce Engine:
+  Distributed resource management framework with Capacity Scheduler.
+  Supports MapReduce jobs (yarn jar wordcount.jar) & Hadoop Streaming.
 
-- MapReduce & Apache Tez Engine:
-  Distributed parallel execution framework and memory-pipelined DAG engine.
+- PySpark v3.3.0 Engine & REPL Shell (Python WebAssembly):
+  High-class SparkSession & SparkContext integration running 100% offline.
+  DataFrame API: createDataFrame, show(), printSchema(), select(), filter(),
+  where(), withColumn(), withColumnRenamed(), drop(), groupBy(), count(), sum(),
+  avg(), min(), max(), sort(), orderBy(), createOrReplaceTempView(), spark.sql().
+  DataFrame Readers: spark.read.csv(), spark.read.json().
+  RDD API: sc.parallelize(), map(), filter(), flatMap(), reduce(), reduceByKey(),
+  groupByKey(), collect(), count(), take().
+  Interactive Shell: Type pyspark or spark to open >>> prompt.
+  Script Execution: spark-submit script.py or python script.py.
 
-- Node.js Runtime & Polyglot Hadoop Streaming:
-  Full JavaScript engine execution for .js files, loops, math, and streaming.
+- KSQL SQLite WebAssembly Engine:
+  Interactive SQL engine (>> prompt) launched via hive, pig, or ksql.
+  Pig-style LOAD and STORE/SAVE: load 'file.csv' into table, store table into 'out.csv',
+  save database.db. Full IndexedDB persistence across reloads (hadoop-lab-db).
 
-- Hive, LLAP, Impala, Presto, Phoenix & Kyuubi SQL Gateways:
-  Interactive MPP SQL analytics engines over HDFS and HBase tables.
+- Terminal Local Storage & Host I/O:
+  get                   Import file from local computer OS into terminal directory.
+  download <filename>   Export file from terminal directory to computer Downloads folder.
+  vim <file>            In-terminal Vim text editor with -- INSERT -- and : commands (:wq to save).
 
-- Apache Spark, Pig, Zeppelin & NiFi:
-  In-memory processing, Pig Latin ETL, notebook server & automated dataflows.
+- PWA Offline Capability:
+  Chrome CacheStorage precaching for 100% offline usage anywhere.
 
 --------------------------------------------------------------------------------
 2. GETTING STARTED (START HADOOP DAEMONS FIRST):
@@ -873,6 +887,10 @@ undefined
       }
       const targetFile = args[0];
       return `__DOWNLOAD_FILE__:${targetFile}`;
+    }
+
+    if (act === 'about') {
+      return ABOUT_GUIDE_CONTENT;
     }
 
     if (act === 'get') {
@@ -2279,9 +2297,12 @@ Hadoop Ecosystem Commands:
   zeppelin-daemon.sh start             Start Apache Zeppelin notebook server
   hbase shell                          Open interactive HBase NoSQL shell
   hbase shell -c "list"                Run HBase shell command directly
-  spark-submit --class ... app.jar     Submit Apache Spark Application
-  spark-shell                          Interactive Scala REPL for Spark
-  pyspark                              Interactive Python REPL for Spark
+  pyspark / spark / spark-shell        Interactive PySpark REPL shell (>>> prompt)
+  hive / pig / ksql                    Interactive KSQL WASM Database shell (>> prompt)
+  spark-submit app.py                  Submit PySpark job execution
+  get                                  Import local file from host OS into terminal storage
+  download <file>                      Export terminal file to host OS Downloads folder
+  about / cat about.txt                Display developer, architecture, and system details
   sqoop import --table tbl --target-dir hdfs_dir  Import database tables into HDFS
   kafka-topics.sh --create --topic logs Create Kafka topic
   flume-ng agent --conf-file flume.conf  Run Flume stream ingestion to HDFS

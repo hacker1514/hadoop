@@ -50,11 +50,13 @@ export const FullTerminalView: React.FC<FullTerminalViewProps> = ({ backend }) =
   ]);
 
   useEffect(() => {
-    ksqlEngineRef.current.saveLocalFileCallback = (filename, content) => {
-      backend.saveLocalFile(filename, content);
-    };
-    ksqlEngineRef.current.init();
-    backend.executePySparkRepl('pass');
+    try {
+      ksqlEngineRef.current.saveLocalFileCallback = (filename, content) => {
+        backend.saveLocalFile(filename, content);
+      };
+      ksqlEngineRef.current.init().catch(() => {});
+      backend.executePySparkRepl('pass').catch(() => {});
+    } catch {}
   }, [backend]);
 
   useEffect(() => {

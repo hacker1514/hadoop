@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, X, CheckCircle2 } from 'lucide-react';
+import { Download, X, CheckCircle2, Terminal } from 'lucide-react';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -12,6 +12,7 @@ export const PWABanner: React.FC = () => {
   );
   const [showInstallBanner, setShowInstallBanner] = useState<boolean>(false);
   const [installStatus, setInstallStatus] = useState<'idle' | 'installing' | 'done'>('idle');
+  const [imgError, setImgError] = useState<boolean>(false);
 
   useEffect(() => {
     const isStandalone =
@@ -71,13 +72,13 @@ export const PWABanner: React.FC = () => {
       setInstallStatus('installing');
       try {
         await promptEvent.prompt();
-        const choice = await promptEvent.userChoice;
+        const choice = await promptEvent.userChoice.catch(() => null);
         if (choice && choice.outcome === 'accepted') {
           setInstallStatus('done');
           (window as any).deferredPWAInstallPrompt = null;
           setTimeout(() => {
             setShowInstallBanner(false);
-          }, 1500);
+          }, 1000);
         } else {
           setInstallStatus('idle');
         }
@@ -95,7 +96,7 @@ export const PWABanner: React.FC = () => {
     setShowInstallBanner(false);
   };
 
-  if (!showInstallBanner) return null;
+  if (!showInstallBanner || !installPrompt) return null;
 
   return (
     <div
@@ -103,14 +104,16 @@ export const PWABanner: React.FC = () => {
       style={{ animation: 'slideUp 0.3s ease-out' }}
     >
       <div className="shrink-0 w-8 h-8 bg-black border border-cyan-500/50 rounded-lg flex items-center justify-center overflow-hidden">
-        <img
-          src="./logo.svg"
-          alt="Hadoop"
-          className="w-6 h-6 object-contain"
-          onError={(ev) => {
-            (ev.target as HTMLImageElement).style.display = 'none';
-          }}
-        />
+        {!imgError ? (
+          <img
+            src="./icons/icon-192.png"
+            alt="Hadoop"
+            className="w-6 h-6 object-contain"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <Terminal className="w-5 h-5 text-yellow-400" />
+        )}
       </div>
 
       <div className="flex-1 min-w-0">
