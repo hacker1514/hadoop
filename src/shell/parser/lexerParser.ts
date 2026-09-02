@@ -1,6 +1,6 @@
 export interface ParsedCommand {
   raw: string;
-  utility: 'hdfs' | 'hadoop' | 'yarn' | 'script' | 'linux' | 'help' | 'clear' | 'unknown';
+  utility: 'hdfs' | 'hadoop' | 'yarn' | 'script' | 'linux' | 'help' | 'clear' | 'comment' | 'unknown';
   subcommand?: string;
   action?: string;
   flags: Set<string>;
@@ -8,9 +8,15 @@ export interface ParsedCommand {
 }
 
 export function parseHadoopCommand(input: string): ParsedCommand {
-  const trimmed = input.trim();
-  if (!trimmed) {
-    return { raw: input, utility: 'unknown', flags: new Set(), positionalArgs: [] };
+  let cleanInput = input;
+  const hashIdx = cleanInput.indexOf('#');
+  if (hashIdx !== -1) {
+    cleanInput = cleanInput.substring(0, hashIdx);
+  }
+
+  const trimmed = cleanInput.trim();
+  if (!trimmed || input.trim().startsWith('#')) {
+    return { raw: input, utility: 'comment', flags: new Set(), positionalArgs: [] };
   }
 
   const tokens = trimmed.split(/\s+/).filter(Boolean);
@@ -30,7 +36,7 @@ export function parseHadoopCommand(input: string): ParsedCommand {
   }
 
   
-  if (['ls', 'pwd', 'cd', 'mkdir', 'echo', 'cat', 'rm', 'touch', 'whoami', 'grep', 'wc', 'head', 'tail', 'history', 'top', 'df', 'free', 'uname', 'ifconfig', 'ip', 'ping', 'netstat', 'ps', 'kill', 'killall', 'sort', 'uniq', 'node'].includes(utilityStr)) {
+  if (['ls', 'pwd', 'cd', 'mkdir', 'echo', 'cat', 'rm', 'touch', 'whoami', 'grep', 'wc', 'head', 'tail', 'history', 'top', 'df', 'free', 'uname', 'ifconfig', 'ip', 'ping', 'netstat', 'ps', 'jps', 'kill', 'killall', 'sort', 'uniq', 'node', 'python', 'python3', 'cp', 'mv', 'hive', 'pig', 'download', 'get', 'spark', 'pyspark', 'spark-shell', 'spark-submit'].includes(utilityStr)) {
     return { raw: input, utility: 'linux', action: utilityStr, flags: new Set(), positionalArgs: tokens.slice(1) };
   }
 
@@ -53,7 +59,7 @@ export function parseHadoopCommand(input: string): ParsedCommand {
   while (idx < tokens.length) {
     const token = tokens[idx];
     if (token.startsWith('-')) {
-      if (!action && (subcommand === 'dfs' || subcommand === 'dfsadmin' || subcommand === 'rmadmin' || subcommand === 'application' || subcommand === 'logs' || subcommand === 'haadmin' || subcommand === 'storagepolicies' || subcommand === 'ec' || subcommand === 'cacheadmin' || subcommand === 'balancer' || subcommand === 'diskbalancer' || subcommand === 'queue' || subcommand === 'crypto' || subcommand === 'node')) {
+      if (!action && (subcommand === 'namenode' || subcommand === 'dfs' || subcommand === 'dfsadmin' || subcommand === 'rmadmin' || subcommand === 'application' || subcommand === 'logs' || subcommand === 'haadmin' || subcommand === 'storagepolicies' || subcommand === 'ec' || subcommand === 'cacheadmin' || subcommand === 'balancer' || subcommand === 'diskbalancer' || subcommand === 'queue' || subcommand === 'crypto' || subcommand === 'node')) {
         action = token;
       } else {
         flags.add(token);

@@ -1,15 +1,17 @@
 const DB_NAME = 'hadoop-lab-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 const STORE_LOCAL_FILES = 'localFiles';
 const STORE_LOCAL_DIRS = 'localDirs';
 const STORE_HDFS_CONTENT = 'hdfsFileContent';
 const STORE_COMMAND_HISTORY = 'commandHistory';
 const STORE_SHELL_STATE = 'shellState';
+const STORE_KSQL_DATABASE = 'ksqlDatabase';
 
 export interface ShellState {
   isHDFSStarted: boolean;
   isYARNStarted: boolean;
+  isNameNodeFormatted: boolean;
   localDir: string;
   kerberosTicket: string | null;
   activeNameNodeId: string;
@@ -43,6 +45,9 @@ export class HadoopDB {
         }
         if (!db.objectStoreNames.contains(STORE_SHELL_STATE)) {
           db.createObjectStore(STORE_SHELL_STATE);
+        }
+        if (!db.objectStoreNames.contains(STORE_KSQL_DATABASE)) {
+          db.createObjectStore(STORE_KSQL_DATABASE);
         }
       };
 
@@ -145,6 +150,10 @@ export class HadoopDB {
     return this.get<string>(STORE_HDFS_CONTENT, path);
   }
 
+  async deleteHdfsFileContent(path: string): Promise<void> {
+    await this.del(STORE_HDFS_CONTENT, path);
+  }
+
   async loadAllHdfsFileContents(): Promise<Map<string, string>> {
     const keys = await this.getAllKeys(STORE_HDFS_CONTENT);
     const values = await this.getAll<string>(STORE_HDFS_CONTENT);
@@ -168,6 +177,30 @@ export class HadoopDB {
 
   async loadShellState(): Promise<ShellState | undefined> {
     return this.get<ShellState>(STORE_SHELL_STATE, 'state');
+  }
+
+  async saveKSQLDatabase(data: Uint8Array): Promise<void> {
+    let binary = '';
+    const bytes = new Uint8Array(data);
+    const len = bytes.byteLength;
+    const chunkSize = 0x8000;
+    for (let i = 0; i < len; i += chunkSize) {
+      binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunkSize)));
+    }
+    const base64 = btoa(binary);
+    await this.put(STORE_KSQL_DATABASE, 'db_binary', base64);
+  }
+
+  async loadKSQLDatabase(): Promise<Uint8Array | undefined> {
+    const base64 = await this.get<string>(STORE_KSQL_DATABASE, 'db_binary');
+    if (!base64 || typeof base64 !== 'string') return undefined;
+    const binary = atob(base64);
+    const len = binary.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
   }
 
   async getStorageEstimate(): Promise<{ usageBytes: number; quotaBytes: number }> {

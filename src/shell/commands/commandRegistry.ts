@@ -3,9 +3,8 @@ import { ResourceManager } from '../../yarn/resourcemanager/resourceManager';
 import { MapReduceEngine } from '../../mapreduce/engine/mapReduceEngine';
 import { parseHadoopCommand, ParsedCommand } from '../parser/lexerParser';
 import { INodeFile } from '../../core/domain/types';
-import { HiveEngine } from '../../ecosystem/hive/hiveEngine';
-import { HBaseEngine } from '../../ecosystem/hbase/hbaseEngine';
 import { HadoopDB, ShellState } from '../../storage/hadoopDB';
+import { PythonEngine, transpilePythonToJS } from '../../ecosystem/python/pythonEngine';
 
 
 const ABOUT_GUIDE_CONTENT = `================================================================================
@@ -160,12 +159,145 @@ ENVIRONMENT: Hadoop Simulation & Complete Enterprise Ecosystem Engine
   clear                         Clear terminal screen
 ================================================================================`;
 
+const CORE_SITE_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+    <property>
+        <name>fs.defaultFS</name>
+        <value>hdfs://localhost:9000</value>
+        <description>NameNode URI for HDFS cluster default filesystem.</description>
+    </property>
+    <property>
+        <name>hadoop.tmp.dir</name>
+        <value>/tmp/hadoop-\${user.name}</value>
+        <description>Base directory for temporary simulated storage files.</description>
+    </property>
+    <property>
+        <name>io.file.buffer.size</name>
+        <value>131072</value>
+        <description>Buffer size used in sequence files (128 KB).</description>
+    </property>
+    <property>
+        <name>hadoop.security.authentication</name>
+        <value>simple</value>
+        <description>Authentication mechanism: simple or kerberos.</description>
+    </property>
+    <property>
+        <name>hadoop.security.authorization</name>
+        <value>true</value>
+        <description>Enable Service Level Authorization in Hadoop.</description>
+    </property>
+</configuration>`;
+
+const HDFS_SITE_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+    <property>
+        <name>dfs.replication</name>
+        <value>3</value>
+        <description>Default HDFS block replication factor across DataNodes.</description>
+    </property>
+    <property>
+        <name>dfs.blocksize</name>
+        <value>134217728</value>
+        <description>Default HDFS block size in bytes (128 MB).</description>
+    </property>
+    <property>
+        <name>dfs.namenode.name.dir</name>
+        <value>file:///var/hadoop/dfs/name</value>
+        <description>Local filesystem path where NameNode stores fsimage &amp; edits log.</description>
+    </property>
+    <property>
+        <name>dfs.datanode.data.dir</name>
+        <value>file:///var/hadoop/dfs/data</value>
+        <description>Local filesystem directory where DataNodes store blocks.</description>
+    </property>
+    <property>
+        <name>dfs.permissions.enabled</name>
+        <value>true</value>
+        <description>Enable POSIX file permissions checking in HDFS.</description>
+    </property>
+    <property>
+        <name>dfs.namenode.servicerpc-address</name>
+        <value>localhost:8021</value>
+        <description>NameNode Service RPC listener port.</description>
+    </property>
+    <property>
+        <name>dfs.namenode.http-address</name>
+        <value>localhost:9870</value>
+        <description>NameNode Web UI HTTP address.</description>
+    </property>
+</configuration>`;
+
+const MAPRED_SITE_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+    <property>
+        <name>mapreduce.framework.name</name>
+        <value>yarn</value>
+        <description>Execution framework set to YARN (instead of local/classic).</description>
+    </property>
+    <property>
+        <name>mapreduce.application.classpath</name>
+        <value>$HADOOP_MAPRED_HOME/share/hadoop/mapreduce/*:$HADOOP_MAPRED_HOME/share/hadoop/mapreduce/lib/*</value>
+        <description>Class path for MapReduce applications.</description>
+    </property>
+    <property>
+        <name>mapreduce.map.memory.mb</name>
+        <value>1024</value>
+        <description>Amount of memory allocated for each Map task container.</description>
+    </property>
+    <property>
+        <name>mapreduce.reduce.memory.mb</name>
+        <value>2048</value>
+        <description>Amount of memory allocated for each Reduce task container.</description>
+    </property>
+    <property>
+        <name>mapreduce.jobhistory.address</name>
+        <value>localhost:10020</value>
+        <description>MapReduce JobHistory Server IPC address.</description>
+    </property>
+</configuration>`;
+
+const YARN_SITE_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+    <property>
+        <name>yarn.resourcemanager.hostname</name>
+        <value>localhost</value>
+        <description>Hostname of the YARN ResourceManager daemon.</description>
+    </property>
+    <property>
+        <name>yarn.nodemanager.aux-services</name>
+        <value>mapreduce_shuffle</value>
+        <description>Auxiliary service required for MapReduce shuffle phase.</description>
+    </property>
+    <property>
+        <name>yarn.nodemanager.aux-services.mapreduce_shuffle.class</name>
+        <value>org.apache.hadoop.mapred.ShuffleHandler</value>
+    </property>
+    <property>
+        <name>yarn.nodemanager.resource.memory-mb</name>
+        <value>8192</value>
+        <description>Total physical RAM (in MB) allocated to containers on NodeManager.</description>
+    </property>
+    <property>
+        <name>yarn.nodemanager.resource.cpu-vcores</name>
+        <value>8</value>
+        <description>Total CPU virtual cores allocated to containers on NodeManager.</description>
+    </property>
+    <property>
+        <name>yarn.resourcemanager.scheduler.class</name>
+        <value>org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacityScheduler</value>
+        <description>YARN Pluggable Scheduler class.</description>
+    </property>
+</configuration>`;
+
 export class HadoopShellExecutor {
   private nameNode: NameNode;
   public resourceManager: ResourceManager;
   private mapReduceEngine: MapReduceEngine;
-  private hiveEngine: HiveEngine;
-  private hbaseEngine: HBaseEngine;
+  private pythonEngine: PythonEngine;
   private db: HadoopDB;
 
   private isHDFSStarted: boolean = false;
@@ -183,12 +315,30 @@ export class HadoopShellExecutor {
   private spaceQuotas: Map<string, string> = new Map();
 
   private historyList: string[] = [];
+  private isNameNodeFormatted: boolean = false;
 
   private localDir: string = '/home/Hacker';
   private localFiles: Map<string, string> = new Map([
-    ['/home/Hacker/about.txt', ABOUT_GUIDE_CONTENT]
+    ['/home/Hacker/about.txt', ABOUT_GUIDE_CONTENT],
+    ['/etc/hadoop/core-site.xml', CORE_SITE_XML],
+    ['/etc/hadoop/hdfs-site.xml', HDFS_SITE_XML],
+    ['/etc/hadoop/mapred-site.xml', MAPRED_SITE_XML],
+    ['/etc/hadoop/yarn-site.xml', YARN_SITE_XML],
+    ['/home/Hacker/hadoop/etc/hadoop/core-site.xml', CORE_SITE_XML],
+    ['/home/Hacker/hadoop/etc/hadoop/hdfs-site.xml', HDFS_SITE_XML],
+    ['/home/Hacker/hadoop/etc/hadoop/mapred-site.xml', MAPRED_SITE_XML],
+    ['/home/Hacker/hadoop/etc/hadoop/yarn-site.xml', YARN_SITE_XML]
   ]);
-  private localDirs: Set<string> = new Set(['/', '/home', '/home/Hacker']);
+  private localDirs: Set<string> = new Set([
+    '/',
+    '/etc',
+    '/etc/hadoop',
+    '/home',
+    '/home/Hacker',
+    '/home/Hacker/hadoop',
+    '/home/Hacker/hadoop/etc',
+    '/home/Hacker/hadoop/etc/hadoop'
+  ]);
 
   private cachedStorageUsage: number = 0;
   private cachedStorageQuota: number = 0;
@@ -197,8 +347,7 @@ export class HadoopShellExecutor {
     this.nameNode = nameNode;
     this.resourceManager = resourceManager;
     this.mapReduceEngine = mapReduceEngine;
-    this.hiveEngine = new HiveEngine();
-    this.hbaseEngine = new HBaseEngine();
+    this.pythonEngine = new PythonEngine();
     this.db = db;
     this.startStorageRefresh();
   }
@@ -214,23 +363,75 @@ export class HadoopShellExecutor {
     setInterval(refresh, 30000);
   }
 
+  public async executePySparkRepl(line: string): Promise<string> {
+    const res = await this.pythonEngine.runPySparkReplLine(
+      line,
+      this.localFiles,
+      (path, content) => this.saveLocalFileContent(path, content)
+    );
+    if (res.stderr) {
+      return res.stdout ? `${res.stdout}\n${res.stderr}` : res.stderr;
+    }
+    return res.stdout;
+  }
+
   public async loadFromDB(): Promise<void> {
     await this.db.waitReady();
 
     const savedFiles = await this.db.loadAllLocalFiles();
     if (savedFiles.size > 0) {
       this.localFiles = savedFiles;
-      if (!this.localFiles.has('/home/Hacker/about.txt')) {
-        this.localFiles.set('/home/Hacker/about.txt', ABOUT_GUIDE_CONTENT);
+    }
+
+    // Clean XML files from home directory /home/Hacker/
+    const homeXmls = [
+      '/home/Hacker/core-site.xml',
+      '/home/Hacker/hdfs-site.xml',
+      '/home/Hacker/mapred-site.xml',
+      '/home/Hacker/yarn-site.xml'
+    ];
+    for (const xmlPath of homeXmls) {
+      if (this.localFiles.has(xmlPath)) {
+        this.localFiles.delete(xmlPath);
+        await this.db.deleteLocalFile(xmlPath);
+      }
+    }
+
+    const defaultConfigs: [string, string][] = [
+      ['/home/Hacker/about.txt', ABOUT_GUIDE_CONTENT],
+      ['/etc/hadoop/core-site.xml', CORE_SITE_XML],
+      ['/etc/hadoop/hdfs-site.xml', HDFS_SITE_XML],
+      ['/etc/hadoop/mapred-site.xml', MAPRED_SITE_XML],
+      ['/etc/hadoop/yarn-site.xml', YARN_SITE_XML],
+      ['/home/Hacker/hadoop/etc/hadoop/core-site.xml', CORE_SITE_XML],
+      ['/home/Hacker/hadoop/etc/hadoop/hdfs-site.xml', HDFS_SITE_XML],
+      ['/home/Hacker/hadoop/etc/hadoop/mapred-site.xml', MAPRED_SITE_XML],
+      ['/home/Hacker/hadoop/etc/hadoop/yarn-site.xml', YARN_SITE_XML]
+    ];
+
+    for (const [pathKey, defaultContent] of defaultConfigs) {
+      if (!this.localFiles.has(pathKey)) {
+        this.localFiles.set(pathKey, defaultContent);
       }
     }
 
     const savedDirs = await this.db.loadAllLocalDirs();
     if (savedDirs.size > 0) {
       this.localDirs = savedDirs;
-      this.localDirs.add('/');
-      this.localDirs.add('/home');
-      this.localDirs.add('/home/Hacker');
+    }
+
+    const defaultDirectories = [
+      '/',
+      '/etc',
+      '/etc/hadoop',
+      '/home',
+      '/home/Hacker',
+      '/home/Hacker/hadoop',
+      '/home/Hacker/hadoop/etc',
+      '/home/Hacker/hadoop/etc/hadoop'
+    ];
+    for (const dirKey of defaultDirectories) {
+      this.localDirs.add(dirKey);
     }
 
     const savedHistory = await this.db.loadCommandHistory();
@@ -242,16 +443,34 @@ export class HadoopShellExecutor {
     if (savedState) {
       this.isHDFSStarted = savedState.isHDFSStarted;
       this.isYARNStarted = savedState.isYARNStarted;
+      this.isNameNodeFormatted = savedState.isNameNodeFormatted ?? false;
       this.localDir = savedState.localDir;
       this.kerberosTicket = savedState.kerberosTicket;
       this.activeNameNodeId = savedState.activeNameNodeId;
     }
+
+    const savedHdfsFiles = await this.db.loadAllHdfsFileContents();
+    if (savedHdfsFiles.size > 0) {
+      savedHdfsFiles.forEach((content, hdfsPath) => {
+        try {
+          if (content === '__HADOOP_DIR__') {
+            this.nameNode.getNamespace().mkdir(hdfsPath, true);
+          } else {
+            this.nameNode.createAndWriteFile(hdfsPath, content);
+          }
+        } catch {
+        }
+      });
+    }
   }
+
+
 
   private persistShellState(): void {
     const state: ShellState = {
       isHDFSStarted: this.isHDFSStarted,
       isYARNStarted: this.isYARNStarted,
+      isNameNodeFormatted: this.isNameNodeFormatted,
       localDir: this.localDir,
       kerberosTicket: this.kerberosTicket,
       activeNameNodeId: this.activeNameNodeId
@@ -282,9 +501,18 @@ export class HadoopShellExecutor {
 
   public execute(commandLine: string): string {
     const trimmed = commandLine.trim();
+    if (trimmed.startsWith('#')) {
+      return '';
+    }
+
     if (trimmed) {
       this.historyList.push(trimmed);
       this.db.saveCommandHistory(this.historyList);
+    }
+
+    const cmd = parseHadoopCommand(commandLine);
+    if (cmd.utility === 'comment') {
+      return '';
     }
 
     
@@ -393,13 +621,7 @@ id   region   product   amount
 Query 20260825_0001, FINISHED, 4 nodes`;
     }
 
-    
-    if (trimmed.startsWith('pig')) {
-      return `[Pig Latin Engine] Compiling Pig script into MapReduce DAG...
-(1, North, Laptop, 1200.0)
-(2, South, Phone, 800.0)
-✓ Pig Job Complete. 2 tuples emitted.`;
-    }
+
 
     
     if (trimmed.startsWith('ranger policy')) {
@@ -453,28 +675,6 @@ ${new Date().toISOString()}  ${new Date(Date.now() + 86400000).toISOString()}  k
     }
 
     
-    if (trimmed.startsWith('hive -e')) {
-      const sqlMatch = trimmed.match(/hive\s+-e\s+["']([^"']+)["']/i);
-      if (!sqlMatch) return `Usage: hive -e "SELECT ... FROM ..."`;
-      return this.hiveEngine.executeSQL(sqlMatch[1]);
-    }
-
-    
-    if (trimmed.startsWith('hbase shell')) {
-      if (trimmed.includes('-c')) {
-        const cmdMatch = trimmed.match(/hbase\s+shell\s+-c\s+["']([^"']+)["']/i);
-        if (!cmdMatch) return `Usage: hbase shell -c "list"`;
-        return this.hbaseEngine.execute(cmdMatch[1]);
-      }
-      return `HBase Shell 2.4.12
-Type 'help<RETURN>' for list of supported commands.
-Type 'exit<RETURN>' to leave the HBase Shell.
-hbase(main):001:0> list
-TABLE
-users
-1 row(s) in 0.0510 seconds`;
-    }
-
     
     if (trimmed.startsWith('spark-submit')) {
       if (!this.isYARNStarted) {
@@ -497,8 +697,6 @@ users
 ✓ Sqoop Import Complete. Imported 1,000 records into HDFS target directory.`;
     }
 
-    const cmd = parseHadoopCommand(commandLine);
-
     if (cmd.utility === 'clear') return '__CLEAR__';
     if (cmd.utility === 'unknown') {
       return `Command not recognized: '${commandLine}'. Type help for available commands.`;
@@ -518,7 +716,8 @@ users
 
     
     if (cmd.utility === 'hdfs') {
-      if (!this.isHDFSStarted) {
+      const isFormatCmd = cmd.subcommand === 'namenode' || cmd.flags.has('-format') || cmd.action === '-format' || cmd.positionalArgs.includes('-format');
+      if (!this.isHDFSStarted && !isFormatCmd) {
         return `ls: Cannot connect to NameNode at localhost:9000. Connection refused.
 Hadoop HDFS services are currently STOPPED.
 Run 'start-dfs.sh' or 'start-all.sh' to start NameNode & DataNodes.`;
@@ -551,6 +750,9 @@ Run 'start-yarn.sh' or 'start-all.sh' to start YARN services.`;
     const act = cmd.action || '';
 
     if (act.startsWith('start-dfs')) {
+      if (!this.isNameNodeFormatted) {
+        return `Error: NameNode is not formatted! Please run 'hdfs namenode -format' first.`;
+      }
       this.isHDFSStarted = true;
       this.persistShellState();
       return `Starting namenodes on [localhost]
@@ -585,6 +787,9 @@ Stopping resourcemanager on [localhost]
     }
 
     if (act.startsWith('start-all')) {
+      if (!this.isNameNodeFormatted) {
+        return `Error: NameNode is not formatted! Please run 'hdfs namenode -format' first.`;
+      }
       this.isHDFSStarted = true;
       this.isYARNStarted = true;
       this.persistShellState();
@@ -656,6 +861,104 @@ undefined
       } catch (err: any) {
         return `Uncaught ${err.name || 'Error'}: ${err.message}`;
       }
+    }
+
+    if (act === 'hive' || act === 'pig') {
+      return '__LAUNCH_KSQL__';
+    }
+
+    if (act === 'download') {
+      if (args.length === 0) {
+        return `Usage: download <filename.ext>`;
+      }
+      const targetFile = args[0];
+      return `__DOWNLOAD_FILE__:${targetFile}`;
+    }
+
+    if (act === 'get') {
+      return '__GET_FILE__';
+    }
+
+    if (act === 'jps') {
+      const processList: string[] = [];
+      if (this.isHDFSStarted) {
+        processList.push('18291 NameNode');
+        processList.push('18420 DataNode');
+        processList.push('18590 SecondaryNameNode');
+      }
+      if (this.isYARNStarted) {
+        processList.push('19842 ResourceManager');
+        processList.push('20115 NodeManager');
+      }
+      processList.push('21045 Jps');
+      return processList.join('\n');
+    }
+
+    if (act === 'pyspark' || act === 'spark' || act === 'spark-shell') {
+      if (args.length > 0) {
+        return this.executeLinuxCommand({
+          raw: `python ${args.join(' ')}`,
+          utility: 'linux',
+          action: 'python',
+          flags: new Set(),
+          positionalArgs: args
+        });
+      }
+      return '__LAUNCH_PYSPARK__';
+    }
+
+    if (act === 'spark-submit') {
+      if (args.length === 0) {
+        return `Usage: spark-submit [options] <app.py> [app arguments]`;
+      }
+      const scriptFile = args.find((a) => a.endsWith('.py')) || args[args.length - 1];
+      const result = this.executeLinuxCommand({
+        raw: `python ${scriptFile}`,
+        utility: 'linux',
+        action: 'python',
+        flags: new Set(),
+        positionalArgs: [scriptFile]
+      });
+      return `[Spark DAG Scheduler] Submitting PySpark Job to Cluster...
+[Spark DAG Scheduler] Stage 0: MapReduce Pipeline Completed.
+[Spark DAG Scheduler] Job 0 finished in 0.42s
+
+${result}`;
+    }
+
+    if (act === 'python' || act === 'python3') {
+      this.pythonEngine.initPyodide();
+
+      if (args.length === 0) {
+        return `python: missing file operand. Usage: python <script.py> [args...]`;
+      }
+
+      if (args[0] === '-v' || args[0] === '--version' || args[0] === '-V') {
+        return `Python 3.11.3 (Pyodide WebAssembly Engine)`;
+      }
+
+      let codeToRun = '';
+      const suppliedInputs: string[] = [];
+
+      if (args[0] === '-c') {
+        codeToRun = args.slice(1).join(' ').replace(/^["']|["']$/g, '');
+      } else {
+        const scriptFile = args[0];
+        const resolved = this.resolveLocalPath(scriptFile);
+        const content = this.getLocalFileContent(resolved);
+        if (content !== undefined) {
+          codeToRun = content;
+          if (args.length > 1) {
+            suppliedInputs.push(...args.slice(1));
+          }
+        } else if (scriptFile.endsWith('.py')) {
+          return `python: can't open file '${scriptFile}': [Errno 2] No such file or directory`;
+        } else {
+          codeToRun = args.join(' ').replace(/^["']|["']$/g, '');
+        }
+      }
+
+      return this.executePython(codeToRun, suppliedInputs);
     }
 
     if (act === 'ps') {
@@ -788,12 +1091,12 @@ Swap:           2048           0        2048`;
       const line = cmd.raw.substring(cmd.raw.indexOf('echo') + 4).trim();
       if (line.includes('>')) {
         const parts = line.split('>');
-        const text = parts[0].replace(/^["']|["']$/g, '').trim();
+        const text = parts[0].replace(/^["']|["']$/g, '').replace(/\\n/g, '\n').replace(/\\t/g, '    ').trim();
         const fileTarget = this.resolveLocalPath(parts[1].trim());
         this.saveLocalFileContent(fileTarget, text + '\n');
         return `✓ Written to local file: ${parts[1].trim()}`;
       }
-      return line.replace(/^["']|["']$/g, '');
+      return line.replace(/^["']|["']$/g, '').replace(/\\n/g, '\n').replace(/\\t/g, '    ');
     }
 
     if (act === 'cat') {
@@ -885,6 +1188,101 @@ Swap:           2048           0        2048`;
       }
 
       return deleted ? `✓ Removed local path: ${args[0]}` : `rm: cannot remove '${args[0]}': No such file or directory`;
+    }
+
+    if (act === 'cp') {
+      if (args.length < 2) return 'cp: missing file operand. Usage: cp <src> <dst>';
+      const isRecursive = args.includes('-r') || args.includes('-R');
+      const cleanArgs = args.filter((a) => a !== '-r' && a !== '-R');
+      if (cleanArgs.length < 2) return 'cp: missing destination file operand after ' + cleanArgs[0];
+
+      const srcPath = this.resolveLocalPath(cleanArgs[0]);
+      let dstPath = this.resolveLocalPath(cleanArgs[1]);
+
+      if (this.localDirs.has(dstPath)) {
+        const fileName = srcPath.split('/').pop() || 'file';
+        dstPath = dstPath.endsWith('/') ? dstPath + fileName : dstPath + '/' + fileName;
+      }
+
+      const content = this.getLocalFileContent(srcPath);
+      if (content !== undefined) {
+        this.saveLocalFileContent(dstPath, content);
+        return `✓ Copied local file: ${cleanArgs[0]} -> ${cleanArgs[1]}`;
+      }
+
+      if (isRecursive && this.localDirs.has(srcPath)) {
+        let copiedCount = 0;
+        const srcPrefix = srcPath.endsWith('/') ? srcPath : srcPath + '/';
+        const dstPrefix = dstPath.endsWith('/') ? dstPath : dstPath + '/';
+
+        this.localDirs.add(dstPath);
+        this.db.saveLocalDir(dstPath);
+
+        this.localDirs.forEach((d) => {
+          if (d.startsWith(srcPrefix)) {
+            const rel = d.substring(srcPrefix.length);
+            const newDir = dstPrefix + rel;
+            this.localDirs.add(newDir);
+            this.db.saveLocalDir(newDir);
+          }
+        });
+
+        this.localFiles.forEach((val, f) => {
+          if (f.startsWith(srcPrefix)) {
+            const rel = f.substring(srcPrefix.length);
+            const newFile = dstPrefix + rel;
+            this.saveLocalFileContent(newFile, val);
+            copiedCount++;
+          }
+        });
+
+        return `✓ Copied local directory '${cleanArgs[0]}' -> '${cleanArgs[1]}' (${copiedCount} files)`;
+      }
+
+      return `cp: cannot stat '${cleanArgs[0]}': No such file or directory`;
+    }
+
+    if (act === 'mv') {
+      if (args.length < 2) return 'mv: missing file operand. Usage: mv <src> <dst>';
+      const srcPath = this.resolveLocalPath(args[0]);
+      let dstPath = this.resolveLocalPath(args[1]);
+
+      if (this.localDirs.has(dstPath)) {
+        const fileName = srcPath.split('/').pop() || 'file';
+        dstPath = dstPath.endsWith('/') ? dstPath + fileName : dstPath + '/' + fileName;
+      }
+
+      const content = this.getLocalFileContent(srcPath);
+      if (content !== undefined) {
+        this.saveLocalFileContent(dstPath, content);
+        this.localFiles.delete(srcPath);
+        this.db.deleteLocalFile(srcPath);
+        return `✓ Moved local file: ${args[0]} -> ${args[1]}`;
+      }
+
+      if (this.localDirs.has(srcPath)) {
+        const srcPrefix = srcPath.endsWith('/') ? srcPath : srcPath + '/';
+        const dstPrefix = dstPath.endsWith('/') ? dstPath : dstPath + '/';
+
+        this.localDirs.add(dstPath);
+        this.db.saveLocalDir(dstPath);
+
+        this.localFiles.forEach((val, f) => {
+          if (f.startsWith(srcPrefix)) {
+            const rel = f.substring(srcPrefix.length);
+            const newFile = dstPrefix + rel;
+            this.saveLocalFileContent(newFile, val);
+            this.localFiles.delete(f);
+            this.db.deleteLocalFile(f);
+          }
+        });
+
+        this.localDirs.delete(srcPath);
+        this.db.deleteLocalDir(srcPath);
+        return `✓ Renamed/moved directory '${args[0]}' -> '${args[1]}'`;
+      }
+
+      return `mv: cannot stat '${args[0]}': No such file or directory`;
     }
 
     return `Linux command executed: ${act}`;
@@ -982,6 +1380,25 @@ Swap:           2048           0        2048`;
         });
         return lines.join('\n');
       }
+    }
+
+    if (subcommand === 'namenode' || flags.has('-format') || action === '-format' || positionalArgs.includes('-format')) {
+      this.isNameNodeFormatted = true;
+      this.persistShellState();
+      return `26/09/02 15:00:00 INFO namenode.NameNode: STARTUP_MSG:
+/************************************************************
+STARTUP_MSG: Starting NameNode
+STARTUP_MSG:   host = localhost/127.0.0.1
+STARTUP_MSG:   version = 3.3.6
+************************************************************/
+26/09/02 15:00:01 INFO namenode.FSNamesystem: Formatting NameNode in /home/Hacker/hadoop/data/dfs/name
+26/09/02 15:00:01 INFO namenode.FSImage: Storage directory /home/Hacker/hadoop/data/dfs/name has been successfully formatted.
+26/09/02 15:00:01 INFO namenode.FSImage: Creating initial FSImage checkpoint with Cluster ID: CID-8f92a10b-4e12-4c22-901a
+26/09/02 15:00:01 INFO namenode.NameNode: SHUTDOWN_MSG:
+/************************************************************
+SHUTDOWN_MSG: Shutting down NameNode at localhost/127.0.0.1
+************************************************************/
+✓ NameNode formatted successfully. Ready for 'start-dfs.sh'.`;
     }
 
     if (subcommand === 'haadmin') {
@@ -1107,6 +1524,7 @@ Swap:           2048           0        2048`;
           const isRecursive = flags.has('-p');
           try {
             this.nameNode.getNamespace().mkdir(dirPath, isRecursive);
+            this.db.saveHdfsFileContent(dirPath, '__HADOOP_DIR__');
             return `✓ Created HDFS directory: ${dirPath}`;
           } catch (err: any) {
             return `mkdir: ${err.message}`;
@@ -1118,6 +1536,7 @@ Swap:           2048           0        2048`;
           const targetPath = positionalArgs[0];
           try {
             this.nameNode.createAndWriteFile(targetPath, '');
+            this.db.saveHdfsFileContent(targetPath, '');
             return `✓ Created empty 0-byte HDFS file: ${targetPath}`;
           } catch (err: any) {
             return `touchz: ${err.message}`;
@@ -1133,6 +1552,7 @@ Swap:           2048           0        2048`;
 
           try {
             this.nameNode.createAndWriteFile(dst, content);
+            this.db.saveHdfsFileContent(dst, content);
             return `✓ Copied in HDFS: [${src}] -> [${dst}]`;
           } catch (err: any) {
             return `cp: ${err.message}`;
@@ -1149,6 +1569,8 @@ Swap:           2048           0        2048`;
           try {
             this.nameNode.createAndWriteFile(dst, content);
             this.nameNode.getNamespace().deletePath(src, true);
+            this.db.saveHdfsFileContent(dst, content);
+            this.db.deleteHdfsFileContent(src);
             return `✓ Moved in HDFS: [${src}] -> [${dst}]`;
           } catch (err: any) {
             return `mv: ${err.message}`;
@@ -1207,6 +1629,7 @@ Swap:           2048           0        2048`;
 
           try {
             this.nameNode.createAndWriteFile(hdfsDst, contentToUpload);
+            this.db.saveHdfsFileContent(hdfsDst, contentToUpload);
             return `✓ Copied from Local [${localSrc}] -> HDFS [${hdfsDst}] (3 replicas allocated across DataNodes)`;
           } catch (err: any) {
             return `put: ${err.message}`;
@@ -1263,6 +1686,9 @@ Swap:           2048           0        2048`;
           const isRecursive = flags.has('-r') || action === '-rm';
           try {
             const success = this.nameNode.getNamespace().deletePath(targetPath, isRecursive);
+            if (success) {
+              this.db.deleteHdfsFileContent(targetPath);
+            }
             return success ? `✓ Deleted ${targetPath}` : `rm: \`${targetPath}\`: No such file or directory`;
           } catch (err: any) {
             return `rm: ${err.message}`;
@@ -1611,6 +2037,150 @@ LogType: stderr
     return '/' + stack.join('/');
   }
 
+  private executePython(code: string, inputs: string[]): string {
+    const onSaveFile = (filePath: string, content: string) => {
+      this.saveLocalFileContent(filePath, content);
+    };
+
+    if (this.pythonEngine) {
+      const pyodideRes = this.pythonEngine.runSync(code, inputs, this.localFiles, onSaveFile);
+      if (pyodideRes) {
+        return pyodideRes.stderr ? `${pyodideRes.stdout}\n${pyodideRes.stderr}`.trim() : pyodideRes.stdout;
+      }
+      const fallbackRes = this.pythonEngine.fallbackExecuteSync(code, inputs, this.localFiles, onSaveFile);
+      if (fallbackRes) {
+        return fallbackRes.stderr ? `${fallbackRes.stdout}\n${fallbackRes.stderr}`.trim() : fallbackRes.stdout;
+      }
+    }
+    return this.executePythonSync(code, inputs);
+  }
+
+  private executePythonSync(code: string, inputs: string[]): string {
+    const logs: string[] = [];
+    let inputIdx = 0;
+    let needInputPrompt: string | null = null;
+
+    const mockInput = (promptMsg: string = ''): string => {
+      if (inputIdx < inputs.length) {
+        const val = inputs[inputIdx++];
+        if (promptMsg) logs.push(`${promptMsg}${val}`);
+        return val;
+      }
+      needInputPrompt = promptMsg || 'Enter input: ';
+      throw new Error('__NEED_INPUT__');
+    };
+
+    try {
+      const jsCode = transpilePythonToJS(code);
+
+      const pyPrint = (...args: any[]) => {
+        const line = args.map((a) => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ');
+        logs.push(line);
+      };
+
+      const pyInput = (promptStr: string = ''): string => {
+        return mockInput(promptStr);
+      };
+
+      const pyOpen = (path: string, mode: string = 'r') => {
+        const resolvedPath = this.resolveLocalPath(path);
+        const basename = path.split('/').pop() || path;
+
+        if (mode.includes('w') || mode.includes('a')) {
+          let fileData = mode.includes('a') ? (this.getLocalFileContent(resolvedPath) || '') : '';
+          return {
+            write: (str: string) => {
+              fileData += String(str);
+              this.saveLocalFileContent(resolvedPath, fileData);
+            },
+            writelines: (lines: string[]) => {
+              fileData += lines.join('');
+              this.saveLocalFileContent(resolvedPath, fileData);
+            },
+            read: () => fileData,
+            close: () => {},
+            __enter__: function() { return this; },
+            __exit__: function() {}
+          };
+        } else {
+          const content = this.getLocalFileContent(resolvedPath) ?? this.getLocalFileContent(basename) ?? '';
+          return {
+            read: () => content,
+            readline: () => content.split('\n')[0] || '',
+            readlines: () => content.split('\n'),
+            write: () => {},
+            close: () => {},
+            __enter__: function() { return this; },
+            __exit__: function() {}
+          };
+        }
+      };
+
+      const pyImport = (moduleName: string) => {
+        const modFile = `${moduleName}.py`;
+        const content = this.getLocalFileContent(modFile) || this.getLocalFileContent(`/home/Hacker/${modFile}`);
+        if (content === undefined) {
+          throw new Error(`No module named '${moduleName}'`);
+        }
+        const modSandbox: any = {
+          Math, JSON, parseInt, parseFloat, String, Number, Array, Object,
+          True: true, False: false, None: null
+        };
+        const modJs = transpilePythonToJS(content);
+        const fn = new Function(...Object.keys(modSandbox), modJs);
+        fn(...Object.values(modSandbox));
+        return modSandbox;
+      };
+
+      const sandbox = {
+        __py_print__: pyPrint,
+        __py_input__: pyInput,
+        __py_open__: pyOpen,
+        __py_import__: pyImport,
+        Math,
+        JSON,
+        parseInt,
+        parseFloat,
+        String,
+        Number,
+        Array,
+        Object,
+        True: true,
+        False: false,
+        None: null,
+        len: (obj: any) => (obj && obj.length !== undefined ? obj.length : 0),
+        range: (start: number, stop?: number, step: number = 1) => {
+          if (stop === undefined) {
+            stop = start;
+            start = 0;
+          }
+          const arr = [];
+          for (let i = start; i < stop; i += step) arr.push(i);
+          return arr;
+        },
+        str: (v: any) => String(v),
+        int: (v: any) => parseInt(v, 10) || 0,
+        float: (v: any) => parseFloat(v) || 0.0,
+        list: (v: any) => Array.from(v || [])
+      };
+
+      const fnKeys = Object.keys(sandbox);
+      const fnVals = Object.values(sandbox);
+
+      const fn = new Function(...fnKeys, jsCode);
+      fn(...fnVals);
+
+      return logs.length > 0 ? logs.join('\n') : '';
+    } catch (err: any) {
+      if (err && err.message === '__NEED_INPUT__') {
+        return `__NEED_INPUT__:${needInputPrompt || 'Enter input: '}`;
+      }
+      return logs.length > 0
+        ? `${logs.join('\n')}\nPython SyntaxError / RuntimeError: ${err.message}`
+        : `Python SyntaxError / RuntimeError: ${err.message}`;
+    }
+  }
+
   private getGeneralHelpText(): string {
     return `Hadoop Practice Laboratory Terminal Help:
 Hadoop Daemon Controls:
@@ -1629,11 +2199,14 @@ Linux Commands & Text Editor:
   history                       Display command history
   vim <file> / vi <file>        Open interactive Vim text editor (:wq to save & exit)
 
-Node.js Engine & Polyglot Hadoop Streaming:
+Node.js & Python Engines & Polyglot Hadoop Streaming:
+  python script.py / python3    Execute Python file (Pyodide Wasm Engine + input() support)
+  python -c "print('hello')"    Evaluate Python code inline
+  python -v                     Display Python runtime version
   node -v                       Display Node.js runtime version
   node script.js                Execute JavaScript file
   node -e "console.log('test')" Evaluate JavaScript code inline
-  hadoop jar streaming.jar -mapper "node mapper.js" -reducer "node reducer.js"
+  hadoop jar streaming.jar -mapper "python mapper.py" -reducer "python reducer.py"
 
 HDFS Operations (Local <-> HDFS & Inter-HDFS):
   hdfs dfs -put <local> <hdfs>         Copy file from Local Linux FS -> HDFS

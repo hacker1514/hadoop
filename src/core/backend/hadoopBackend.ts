@@ -19,6 +19,7 @@ export interface HadoopBackend {
   getFailureInjector(): FailureInjector;
   getObservability(): ObservabilityService;
   executeCLI(command: string): string;
+  executePySparkRepl(line: string): Promise<string>;
   saveLocalFile(filePath: string, content: string): void;
   readLocalFile(filePath: string): string | undefined;
   getWorkingDir(): string;
@@ -108,6 +109,10 @@ export class SimulatorBackend implements HadoopBackend {
 
   public executeCLI(command: string): string {
     return this.shellExecutor.execute(command);
+  }
+
+  public executePySparkRepl(line: string): Promise<string> {
+    return this.shellExecutor.executePySparkRepl(line);
   }
 
   public saveLocalFile(filePath: string, content: string): void {

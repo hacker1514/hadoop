@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hadoop-v8';
+const CACHE_NAME = 'hadoop-v10';
 const OFFLINE_PAGE = './index.html';
 
 const PRECACHE_ASSETS = [
@@ -70,24 +70,18 @@ async function cacheFirstStrategy(request) {
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Hadoop Lab — Offline</title>
+  <title>Hadoop</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #09090b; color: #e2e8f0; font-family: 'Courier New', monospace;
+    body { background: #000000; color: #ffffff; font-family: monospace;
            display: flex; align-items: center; justify-content: center; min-height: 100vh; }
     .container { text-align: center; padding: 2rem; }
-    .logo { font-size: 3rem; font-weight: 900; color: #0ea5e9; letter-spacing: 0.2em; margin-bottom: 1rem; }
-    .status { color: #f59e0b; font-size: 1.1rem; margin-bottom: 0.5rem; }
-    .hint { color: #64748b; font-size: 0.875rem; }
-    .pulse { animation: pulse 2s infinite; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .logo { font-size: 2rem; font-weight: 900; color: #00e5ff; letter-spacing: 0.2em; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="logo">HADOOP</div>
-    <div class="status pulse">● Offline — No Connection</div>
-    <p class="hint">The app is loading from cache.<br/>Please wait or refresh when online.</p>
   </div>
 </body>
 </html>`,

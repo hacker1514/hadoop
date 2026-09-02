@@ -31,21 +31,11 @@ function postBuild() {
   fs.writeFileSync(path.join(distDir, '.nojekyll'), '');
   fs.writeFileSync(path.join(rootDir, '.nojekyll'), '');
 
-  // Copy dist/index.html to dist/404.html and root index.html/404.html
+  // Copy dist/index.html to dist/404.html
   const distIndex = path.join(distDir, 'index.html');
   if (fs.existsSync(distIndex)) {
     fs.copyFileSync(distIndex, path.join(distDir, '404.html'));
-    fs.copyFileSync(distIndex, path.join(rootDir, '404.html'));
-    fs.copyFileSync(distIndex, path.join(rootDir, 'index.html'));
-    console.log('✓ Created 404.html and updated root index.html');
-  }
-
-  // Copy dist/assets to root assets/
-  const distAssets = path.join(distDir, 'assets');
-  const rootAssets = path.join(rootDir, 'assets');
-  if (fs.existsSync(distAssets)) {
-    copyRecursiveSync(distAssets, rootAssets);
-    console.log('✓ Synced compiled dist/assets -> root assets/');
+    console.log('✓ Created dist/404.html');
   }
 
   // Copy public/dist files (manifest.json, sw.js, logo.svg, icons, hadoop_logo.jpg) to root
@@ -67,6 +57,24 @@ function postBuild() {
   if (fs.existsSync(srcIcons)) {
     copyRecursiveSync(srcIcons, path.join(rootDir, 'icons'));
     console.log('✓ Synced icons/ -> root icons/ for GitHub Pages');
+  }
+
+  // Copy pyodide directory to root pyodide/
+  const srcPyodide = fs.existsSync(path.join(distDir, 'pyodide'))
+    ? path.join(distDir, 'pyodide')
+    : path.join(publicDir, 'pyodide');
+  if (fs.existsSync(srcPyodide)) {
+    copyRecursiveSync(srcPyodide, path.join(rootDir, 'pyodide'));
+    console.log('✓ Synced pyodide/ -> root pyodide/ for GitHub Pages');
+  }
+
+  // Copy sql directory to root sql/
+  const srcSql = fs.existsSync(path.join(distDir, 'sql'))
+    ? path.join(distDir, 'sql')
+    : path.join(publicDir, 'sql');
+  if (fs.existsSync(srcSql)) {
+    copyRecursiveSync(srcSql, path.join(rootDir, 'sql'));
+    console.log('✓ Synced sql/ -> root sql/ for GitHub Pages');
   }
 
   console.log('✅ GitHub Pages post-build ready — PWA manifest & sw.js 100% available!');
