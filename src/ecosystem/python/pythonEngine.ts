@@ -125,8 +125,90 @@ export function transpilePythonToJS(pythonCode: string): string {
 
 export class PythonEngine {
   private pyodide: any = null;
-  private isLoadingPyodide: boolean = false;
+  private pyodideInitPromise: Promise<void> | null = null;
   private isPySparkSetupDone: boolean = false;
+
+  /** Copy the simulated shell filesystem into Pyodide without flattening paths. */
+  private syncLocalFiles(localFiles?: Map<string, string>): void {
+    if (!localFiles || !this.pyodide?.FS) return;
+
+    const importDirs = new Set<string>(['/home/Hacker']);
+    const pythonDirs = new Set<string>();
+    localFiles.forEach((content, filepath) => {
+      const normalized = filepath.startsWith('/') ? filepath : `/home/Hacker/${filepath}`;
+      const parent = normalized.slice(0, normalized.lastIndexOf('/')) || '/';
+      importDirs.add(parent);
+      if (normalized.endsWith('.py')) pythonDirs.add(parent);
+      try {
+        this.pyodide.FS.mkdirTree(parent);
+        this.pyodide.FS.writeFile(normalized, content);
+      } catch {
+        // A duplicate or unsupported path should not stop Python execution.
+      }
+    });
+
+    // Make folder modules win over same-named .py files (for example n/ and n.py).
+    // This also lets imports work for folders that do not already contain __init__.py.
+    pythonDirs.forEach((dir) => {
+      if (dir !== '/home/Hacker') {
+        try {
+          this.pyodide.FS.writeFile(`${dir}/__init__.py`, '');
+        } catch {
+          // The marker is only needed when the directory is writable.
+        }
+      }
+    });
+
+    const dirs = JSON.stringify(Array.from(importDirs));
+    const topLevelPackages = JSON.stringify(
+      Array.from(pythonDirs)
+        .filter((dir) => dir.startsWith('/home/Hacker/') && dir !== '/home/Hacker')
+        .map((dir) => dir.slice('/home/Hacker/'.length).split('/')[0])
+    );
+    try {
+      this.pyodide.runPython(`
+import sys
+import importlib
+__project_paths = ${dirs}
+# Reorder existing paths too: Pyodide's /home/pyodide can already be ahead
+# of the simulated home directory and shadow a same-named project package.
+sys.path[:] = __project_paths + [p for p in sys.path if p not in __project_paths]
+for __name in ${topLevelPackages}:
+    sys.modules.pop(__name, None)
+importlib.invalidate_caches()
+`);
+    } catch {
+      // The filesystem sync still helps open(); imports can report their own errors.
+    }
+  }
+
+  private persistLocalFiles(onSaveFile?: (path: string, content: string) => void): void {
+    if (!onSaveFile || !this.pyodide?.FS) return;
+    const fs = this.pyodide.FS;
+    const visit = (directory: string) => {
+      let entries: string[];
+      try {
+        entries = fs.readdir(directory).filter((name: string) => name !== '.' && name !== '..');
+      } catch {
+        return;
+      }
+      for (const name of entries) {
+        const path = `${directory.replace(/\/$/, '')}/${name}`;
+        try {
+          const stat = fs.stat(path);
+          if (fs.isDir(stat.mode)) {
+            if (name !== '__pycache__') visit(path);
+          } else if (fs.isFile(stat.mode) && !name.endsWith('.pyc')) {
+            if (name === '__init__.py') continue;
+            onSaveFile(path, fs.readFile(path, { encoding: 'utf8' }));
+          }
+        } catch {
+          // Ignore transient or unsupported entries and continue persisting others.
+        }
+      }
+    };
+    visit('/home/Hacker');
+  }
 
   constructor() {
     this.initPyodide();
@@ -134,6 +216,31 @@ export class PythonEngine {
 
   public resetPySparkRepl(): void {
     this.isPySparkSetupDone = false;
+  }
+
+  public async runPythonReplLine(
+    line: string,
+    localFiles?: Map<string, string>,
+    onSaveFile?: (path: string, content: string) => void
+  ): Promise<PythonExecutionResult> {
+    await this.initPyodide();
+    if (!this.pyodide) {
+      return { stdout: '', stderr: 'Python REPL could not start because the Pyodide runtime is unavailable.', exitCode: 1 };
+    }
+
+    const logs: string[] = [];
+    const errors: string[] = [];
+    try {
+      this.pyodide.setStdout({ batched: (str: string) => logs.push(str) });
+      this.pyodide.setStderr({ batched: (str: string) => errors.push(str) });
+      this.syncLocalFiles(localFiles);
+      const result = this.pyodide.runPython(line);
+      const stdout = logs.join('\n') || (result === undefined || result === null ? '' : String(result));
+      this.persistLocalFiles(onSaveFile);
+      return { stdout, stderr: errors.join('\n'), exitCode: 0 };
+    } catch (err: any) {
+      return { stdout: logs.join('\n'), stderr: err.message || String(err), exitCode: 1 };
+    }
   }
 
   public async runPySparkReplLine(
@@ -155,15 +262,7 @@ export class PythonEngine {
           batched: (str: string) => errors.push(str)
         });
 
-        if (localFiles && this.pyodide.FS) {
-          localFiles.forEach((content, filepath) => {
-            const basename = filepath.split('/').pop() || filepath;
-            try {
-              this.pyodide.FS.writeFile(basename, content);
-              this.pyodide.FS.writeFile(filepath, content);
-            } catch {}
-          });
-        }
+        this.syncLocalFiles(localFiles);
 
         if (!this.isPySparkSetupDone) {
           this.pyodide.runPython(PYSPARK_PYTHON_SETUP);
@@ -184,21 +283,7 @@ sc = spark.sparkContext
           finalStdout = String(result);
         }
 
-        if (onSaveFile && this.pyodide.FS) {
-          try {
-            const fsFiles = this.pyodide.FS.readdir('.');
-            for (const fname of fsFiles) {
-              if (fname === '.' || fname === '..' || fname.endsWith('.pyc') || fname === 'pyodide.js' || fname.endsWith('.wasm')) continue;
-              try {
-                const stat = this.pyodide.FS.stat(fname);
-                if (stat && this.pyodide.FS.isFile(stat.mode)) {
-                  const fileData = this.pyodide.FS.readFile(fname, { encoding: 'utf8' });
-                  onSaveFile(fname, fileData);
-                }
-              } catch {}
-            }
-          } catch {}
-        }
+        this.persistLocalFiles(onSaveFile);
 
         return {
           stdout: finalStdout,
@@ -214,7 +299,11 @@ sc = spark.sparkContext
       }
     }
 
-    return this.fallbackExecute(line, () => '', localFiles, onSaveFile);
+    return {
+      stdout: '',
+      stderr: 'PySpark REPL could not start because the Pyodide Python runtime is unavailable.',
+      exitCode: 1
+    };
   }
 
   public async initPyodide(): Promise<void> {
@@ -224,32 +313,35 @@ sc = spark.sparkContext
       return;
     }
 
-    if (this.isLoadingPyodide) return;
-    this.isLoadingPyodide = true;
-
-    try {
-      if (!(window as any).loadPyodide) {
-        const script = document.createElement('script');
-        script.src = './pyodide/pyodide.js';
-        script.async = true;
-        document.head.appendChild(script);
-        await new Promise((resolve) => {
-          script.onload = resolve;
-          script.onerror = resolve;
-        });
-      }
-
-      if ((window as any).loadPyodide) {
-        this.pyodide = await (window as any).loadPyodide({
-          indexURL: './pyodide/'
-        });
-        (window as any).pyodide = this.pyodide;
-      }
-    } catch {
-      this.pyodide = null;
-    } finally {
-      this.isLoadingPyodide = false;
+    if (this.pyodideInitPromise) {
+      await this.pyodideInitPromise;
+      return;
     }
+    this.pyodideInitPromise = (async () => {
+      try {
+        if (!(window as any).loadPyodide) {
+          const script = document.createElement('script');
+          script.src = './pyodide/pyodide.js';
+          script.async = true;
+          document.head.appendChild(script);
+          await new Promise((resolve) => {
+            script.onload = resolve;
+            script.onerror = resolve;
+          });
+        }
+
+        if ((window as any).loadPyodide) {
+          this.pyodide = await (window as any).loadPyodide({
+            indexURL: './pyodide/'
+          });
+          (window as any).pyodide = this.pyodide;
+        }
+      } catch {
+        this.pyodide = null;
+      }
+    })();
+    await this.pyodideInitPromise;
+    this.pyodideInitPromise = null;
   }
 
   public runSync(
@@ -280,16 +372,7 @@ sc = spark.sparkContext
         batched: (str: string) => errors.push(str)
       });
 
-      if (localFiles && this.pyodide.FS) {
-        localFiles.forEach((content, filepath) => {
-          const basename = filepath.split('/').pop() || filepath;
-          try {
-            this.pyodide.FS.writeFile(basename, content);
-            this.pyodide.FS.writeFile(filepath, content);
-          } catch {
-          }
-        });
-      }
+      this.syncLocalFiles(localFiles);
 
       (window as any).__pyodide_input_handler = customInput;
       this.pyodide.runPython(`
@@ -317,23 +400,7 @@ builtins.input = __custom_input__
         finalStdout = String(result);
       }
 
-      if (onSaveFile && this.pyodide.FS) {
-        try {
-          const fsFiles = this.pyodide.FS.readdir('.');
-          for (const fname of fsFiles) {
-            if (fname === '.' || fname === '..' || fname.endsWith('.pyc') || fname === 'pyodide.js' || fname.endsWith('.wasm')) continue;
-            try {
-              const stat = this.pyodide.FS.stat(fname);
-              if (stat && this.pyodide.FS.isFile(stat.mode)) {
-                const fileData = this.pyodide.FS.readFile(fname, { encoding: 'utf8' });
-                onSaveFile(fname, fileData);
-              }
-            } catch {
-            }
-          }
-        } catch {
-        }
-      }
+      this.persistLocalFiles(onSaveFile);
 
       return {
         stdout: finalStdout,

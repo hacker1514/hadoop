@@ -9,7 +9,7 @@ interface FullTerminalViewProps {
 
 interface HistoryLine {
   id: string;
-  type: 'banner' | 'prompt' | 'ksql_prompt' | 'pyspark_prompt' | 'output' | 'error' | 'input_prompt';
+  type: 'banner' | 'prompt' | 'ksql_prompt' | 'python_prompt' | 'pyspark_prompt' | 'output' | 'error' | 'input_prompt';
   workingDir?: string;
   command?: string;
   content: string;
@@ -30,6 +30,7 @@ export const FullTerminalView: React.FC<FullTerminalViewProps> = ({ backend }) =
 
   // Interactive Modes State
   const [isKsqlMode, setIsKsqlMode] = useState<boolean>(false);
+  const [isPythonMode, setIsPythonMode] = useState<boolean>(false);
   const [isPysparkMode, setIsPysparkMode] = useState<boolean>(false);
   const ksqlEngineRef = useRef<KSQLEngine>(new KSQLEngine());
 
@@ -38,7 +39,7 @@ export const FullTerminalView: React.FC<FullTerminalViewProps> = ({ backend }) =
   const [inputPromptText, setInputPromptText] = useState<string | null>(null);
 
   const bottomRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const vimTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [lines, setLines] = useState<HistoryLine[]>([
@@ -55,7 +56,6 @@ export const FullTerminalView: React.FC<FullTerminalViewProps> = ({ backend }) =
         backend.saveLocalFile(filename, content);
       };
       ksqlEngineRef.current.init().catch(() => {});
-      backend.executePySparkRepl('pass').catch(() => {});
     } catch {}
   }, [backend]);
 
@@ -65,7 +65,14 @@ export const FullTerminalView: React.FC<FullTerminalViewProps> = ({ backend }) =
     } else {
       vimTextareaRef.current?.focus();
     }
-  }, [lines, isVimMode, inputPromptText, isKsqlMode, isPysparkMode]);
+  }, [lines, isVimMode, inputPromptText, isKsqlMode, isPythonMode, isPysparkMode]);
+
+  useEffect(() => {
+    const textarea = inputRef.current;
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 256)}px`;
+  }, [input]);
 
   const handleContainerClick = () => {
     if (isVimMode) {
@@ -75,11 +82,11 @@ export const FullTerminalView: React.FC<FullTerminalViewProps> = ({ backend }) =
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
     setInput(val);
 
-    if (!inputPromptText && !isKsqlMode && !isPysparkMode && val.trim()) {
+    if (!inputPromptText && !isKsqlMode && !isPythonMode && !isPysparkMode && val.trim()) {
       const matches = getAutocompletions(val, backend.getNameNode().getNamespace());
       if (matches.length > 0 && matches[0].toLowerCase().startsWith(val.toLowerCase())) {
         setGhostSuggestion(matches[0]);
@@ -209,8 +216,37 @@ export const FullTerminalView: React.FC<FullTerminalViewProps> = ({ backend }) =
     fileInput.click();
   };
 
-  const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if ((e.key === 'Tab' || e.key === 'ArrowRight') && ghostSuggestion && !inputPromptText && !isKsqlMode && !isPysparkMode) {
+  const handleKeyDown = async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && e.shiftKey) {
+      e.preventDefault();
+      const textarea = e.currentTarget;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const nextInput = `${input.slice(0, start)}\n${input.slice(end)}`;
+      setInput(nextInput);
+      setGhostSuggestion('');
+      requestAnimationFrame(() => {
+        textarea.selectionStart = start + 1;
+        textarea.selectionEnd = start + 1;
+      });
+      return;
+    }
+
+    if (e.key === 'Tab' && (isPythonMode || isPysparkMode)) {
+      e.preventDefault();
+      const textarea = e.currentTarget;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const nextInput = `${input.slice(0, start)}    ${input.slice(end)}`;
+      setInput(nextInput);
+      requestAnimationFrame(() => {
+        textarea.selectionStart = start + 4;
+        textarea.selectionEnd = start + 4;
+      });
+      return;
+    }
+
+    if ((e.key === 'Tab' || e.key === 'ArrowRight') && ghostSuggestion && !inputPromptText && !isKsqlMode && !isPythonMode && !isPysparkMode) {
       const cursorAtEnd = inputRef.current?.selectionStart === input.length;
       if (e.key === 'Tab' || cursorAtEnd) {
         e.preventDefault();
@@ -218,6 +254,8 @@ export const FullTerminalView: React.FC<FullTerminalViewProps> = ({ backend }) =
         setGhostSuggestion('');
       }
     } else if (e.key === 'ArrowUp') {
+      const cursor = e.currentTarget.selectionStart;
+      if (input.slice(0, cursor).includes('\n')) return;
       e.preventDefault();
       if (commandHistoryList.length > 0) {
         const nextIdx = historyIndex < commandHistoryList.length - 1 ? historyIndex + 1 : historyIndex;
@@ -227,6 +265,8 @@ export const FullTerminalView: React.FC<FullTerminalViewProps> = ({ backend }) =
         setGhostSuggestion('');
       }
     } else if (e.key === 'ArrowDown') {
+      const cursor = e.currentTarget.selectionStart;
+      if (input.slice(cursor).includes('\n')) return;
       e.preventDefault();
       if (historyIndex > 0) {
         const nextIdx = historyIndex - 1;
@@ -288,6 +328,44 @@ export const FullTerminalView: React.FC<FullTerminalViewProps> = ({ backend }) =
           ...prev,
           { id: `ksql_p_${Date.now()}`, type: 'ksql_prompt', command: trimmedKsql, content: '' },
           { id: `ksql_o_${Date.now()}`, type: res.isError ? 'error' : 'output', content: res.output }
+        ]);
+        return;
+      }
+
+      if (isPythonMode) {
+        const trimmedPython = input.trim();
+        const lowerPython = trimmedPython.toLowerCase();
+        setInput('');
+        setGhostSuggestion('');
+
+        if (!trimmedPython) {
+          setLines((prev) => [...prev, { id: `python_empty_${Date.now()}`, type: 'python_prompt', command: '', content: '' }]);
+          return;
+        }
+
+        setCommandHistoryList((prev) => [...prev, trimmedPython]);
+        setHistoryIndex(-1);
+
+        if (['exit', 'exit()', 'quit', 'quit()'].includes(lowerPython)) {
+          setIsPythonMode(false);
+          setLines((prev) => [
+            ...prev,
+            { id: `python_p_${Date.now()}`, type: 'python_prompt', command: trimmedPython, content: '' },
+            { id: `python_exit_${Date.now()}`, type: 'output', content: '[Python] Exited Python shell mode. Returned to the terminal.' }
+          ]);
+          return;
+        }
+
+        if (lowerPython === 'clear') {
+          setLines([]);
+          return;
+        }
+
+        const pythonOutput = await backend.executePythonRepl(trimmedPython);
+        setLines((prev) => [
+          ...prev,
+          { id: `python_p_${Date.now()}`, type: 'python_prompt', command: trimmedPython, content: '' },
+          ...(pythonOutput ? [{ id: `python_o_${Date.now()}`, type: isErrorOutput(pythonOutput) ? ('error' as const) : ('output' as const), content: pythonOutput }] : [])
         ]);
         return;
       }
@@ -413,9 +491,26 @@ export const FullTerminalView: React.FC<FullTerminalViewProps> = ({ backend }) =
         return;
       }
 
+      if (output === '__LAUNCH_PYTHON__') {
+        setIsPythonMode(true);
+        const startupOutput = await backend.executePythonRepl('pass');
+        setLines((prev) => [
+          ...prev,
+          { id: `cmd_${Date.now()}`, type: 'prompt', workingDir: activeDirBefore, command: trimmed, content: '' },
+          {
+            id: `python_welcome_${Date.now()}`,
+            type: isErrorOutput(startupOutput) ? 'error' : 'output',
+            content: `Python WebAssembly interactive shell. Variables persist between commands.\nType exit or quit to return to the terminal.${startupOutput ? `\n${startupOutput}` : ''}`
+          }
+        ]);
+        setInput('');
+        setGhostSuggestion('');
+        return;
+      }
+
       if (output === '__LAUNCH_PYSPARK__') {
         setIsPysparkMode(true);
-        await backend.executePySparkRepl('pass');
+        const startupOutput = await backend.executePySparkRepl('pass');
         setLines((prev) => [
           ...prev,
           { id: `cmd_${Date.now()}`, type: 'prompt', workingDir: activeDirBefore, command: trimmed, content: '' },
@@ -426,13 +521,12 @@ export const FullTerminalView: React.FC<FullTerminalViewProps> = ({ backend }) =
       ____              __
      / __/__  ___ _____/ /__
     _\\ \\/ _ \\/ _ \`/ __/  '_/
-   /__ / .__/\\_,_/_/ /_/\\_\\   version 3.3.0
+   /__ / .__/\\_,_/_/ /_/\\_\\   local PySpark-compatible shell
       /_/
 
-Using Python version 3.9.7
-Spark context Web UI available at http://localhost:4040
-Spark context available as 'sc' (master = yarn).
-SparkSession available as 'spark'.`
+Local Pyodide Python REPL with PySpark-compatible APIs.
+SparkSession is available as 'spark'; SparkContext as 'sc'.
+Type exit or quit to return to the terminal.${startupOutput ? `\n${startupOutput}` : ''}`
           }
         ]);
         setInput('');
@@ -651,7 +745,7 @@ SparkSession available as 'spark'.`
 
           if (line.type === 'prompt') {
             return (
-              <div key={line.id} className="flex items-center font-mono text-xs sm:text-base whitespace-nowrap overflow-x-auto">
+              <div key={line.id} className="flex items-start font-mono text-xs sm:text-base whitespace-pre-wrap overflow-x-auto">
                 <span className="shrink-0 whitespace-pre">
                   <span className="text-green-400 font-bold">[[ </span>
                   <span className="text-cyan-400 font-bold">K </span>
@@ -661,25 +755,34 @@ SparkSession available as 'spark'.`
                   <span className="text-yellow-400 font-bold">: </span>
                   <span className="text-white font-bold">$ </span>
                 </span>
-                <span className="text-yellow-300 font-semibold">{line.command}</span>
+                <span className="text-yellow-300 font-semibold whitespace-pre-wrap">{line.command}</span>
               </div>
             );
           }
 
           if (line.type === 'ksql_prompt') {
             return (
-              <div key={line.id} className="flex items-center font-mono text-xs sm:text-base whitespace-nowrap overflow-x-auto">
+              <div key={line.id} className="flex items-start font-mono text-xs sm:text-base whitespace-pre-wrap overflow-x-auto">
                 <span className="text-yellow-400 font-bold shrink-0 whitespace-pre">{'>> '}</span>
-                <span className="text-cyan-300 font-semibold">{line.command}</span>
+                <span className="text-cyan-300 font-semibold whitespace-pre-wrap">{line.command}</span>
+              </div>
+            );
+          }
+
+          if (line.type === 'python_prompt') {
+            return (
+              <div key={line.id} className="flex items-start font-mono text-xs sm:text-base whitespace-pre-wrap overflow-x-auto">
+                <span className="text-green-400 font-bold shrink-0 whitespace-pre">{'>>> '}</span>
+                <span className="text-yellow-300 font-semibold whitespace-pre-wrap">{line.command}</span>
               </div>
             );
           }
 
           if (line.type === 'pyspark_prompt') {
             return (
-              <div key={line.id} className="flex items-center font-mono text-xs sm:text-base whitespace-nowrap overflow-x-auto">
+              <div key={line.id} className="flex items-start font-mono text-xs sm:text-base whitespace-pre-wrap overflow-x-auto">
                 <span className="text-green-400 font-bold shrink-0 whitespace-pre">{'>>> '}</span>
-                <span className="text-yellow-300 font-semibold">{line.command}</span>
+                <span className="text-yellow-300 font-semibold whitespace-pre-wrap">{line.command}</span>
               </div>
             );
           }
@@ -705,18 +808,18 @@ SparkSession available as 'spark'.`
           );
         })}
 
-        <div className="font-mono text-xs sm:text-base">
-          <div className="flex items-center whitespace-nowrap relative overflow-x-auto">
+        <div className="font-mono text-xs sm:text-base leading-relaxed">
+          <div className="flex items-start whitespace-nowrap relative overflow-x-auto">
             {isKsqlMode ? (
-              <span className="text-yellow-400 font-bold shrink-0 whitespace-pre select-none">
+              <span className="text-yellow-400 font-bold shrink-0 whitespace-pre select-none self-start">
                 {'>> '}
               </span>
-            ) : isPysparkMode ? (
-              <span className="text-green-400 font-bold shrink-0 whitespace-pre select-none">
+            ) : isPythonMode || isPysparkMode ? (
+              <span className="text-green-400 font-bold shrink-0 whitespace-pre select-none self-start">
                 {'>>> '}
               </span>
             ) : inputPromptText ? (
-              <span className="text-green-400 font-bold shrink-0 whitespace-pre select-none">
+              <span className="text-green-400 font-bold shrink-0 whitespace-pre select-none self-start">
                 {inputPromptText}
               </span>
             ) : (
@@ -731,18 +834,18 @@ SparkSession available as 'spark'.`
               </span>
             )}
 
-            <div className="relative flex-1 flex items-center min-w-[120px]">
-              <input
+            <div className="relative flex-1 flex items-start min-w-[120px]">
+              <textarea
                 ref={inputRef}
-                type="text"
+                rows={1}
                 value={input}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
-                className="w-full bg-black border-none text-yellow-300 focus:outline-none placeholder-cyan-900 font-mono font-semibold pl-0.5 text-xs sm:text-base z-10"
+                className="w-full max-h-64 resize-none overflow-y-auto bg-black border-none text-yellow-300 focus:outline-none placeholder-cyan-900 font-mono font-semibold pl-0.5 text-xs sm:text-base leading-relaxed z-10 whitespace-pre-wrap"
                 autoFocus
                 spellCheck={false}
               />
-              {!inputPromptText && !isKsqlMode && !isPysparkMode && ghostSuggestion && ghostSuggestion.toLowerCase().startsWith(input.toLowerCase()) && (
+              {!inputPromptText && !isKsqlMode && !isPythonMode && !isPysparkMode && ghostSuggestion && ghostSuggestion.toLowerCase().startsWith(input.toLowerCase()) && (
                 <div className="absolute left-0.5 text-cyan-700 font-mono font-semibold pointer-events-none z-0 whitespace-pre text-xs sm:text-base">
                   <span className="invisible">{input}</span>
                   <span>{ghostSuggestion.slice(input.length)}</span>

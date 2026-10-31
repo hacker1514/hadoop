@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hadoop-offline-v1';
+const CACHE_NAME = 'hadoop-offline-v2';
 
 const STATIC_ASSETS = [
   './',
@@ -45,6 +45,16 @@ self.addEventListener('fetch', (event) => {
   if (url.protocol === 'chrome-extension:') return;
 
   event.respondWith(
+    request.mode === 'navigate'
+      ? fetch(request)
+          .then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              caches.open(CACHE_NAME).then((cache) => cache.put(request, networkResponse.clone()));
+            }
+            return networkResponse;
+          })
+          .catch(() => caches.match('./index.html').then((cached) => cached || caches.match('./')))
+      :
     caches.match(request).then((cachedResponse) => {
       if (cachedResponse) {
         event.waitUntil(

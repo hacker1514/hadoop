@@ -30,12 +30,18 @@ ENVIRONMENT   : Apache Hadoop, PySpark v3.3.0, KSQL SQLite WASM, HDFS & YARN Eng
   High-class SparkSession & SparkContext integration running 100% offline.
   DataFrame API: createDataFrame, show(), printSchema(), select(), filter(),
   where(), withColumn(), withColumnRenamed(), drop(), groupBy(), count(), sum(),
-  avg(), min(), max(), sort(), orderBy(), createOrReplaceTempView(), spark.sql().
+  avg(), min(), max(), sort(), orderBy(), randomSplit(), createOrReplaceTempView(), spark.sql().
   DataFrame Readers: spark.read.csv(), spark.read.json().
-  RDD API: sc.parallelize(), map(), filter(), flatMap(), reduce(), reduceByKey(),
-  groupByKey(), collect(), count(), take().
+  RDD API: sc.parallelize(), map(), filter(), flatMap(), mapPartitions(), reduce(),
+  reduceByKey(), groupByKey(), sortByKey(), distinct(), union(), zip(), cartesian(),
+  aggregate(), fold(), sum(), mean(), collect(), count(), take(), takeSample().
+  ML API: pyspark.ml Pipeline/PipelineModel; feature preprocessing with
+  VectorAssembler, StringIndexer, OneHotEncoder, Imputer, StandardScaler and
+  Normalizer; LogisticRegression classification and LinearRegression regression;
+  classification and regression evaluators. Runs locally in-memory in Pyodide.
   Interactive Shell: Type pyspark or spark to open >>> prompt.
-  Script Execution: spark-submit script.py or python script.py.
+  Python REPL: Type python or python3 for a persistent >>> prompt; exit or quit returns.
+  Script Execution: spark-submit script.py, python script.py, or python -c "...".
 
 - KSQL SQLite WebAssembly Engine:
   Interactive SQL engine (>> prompt) launched via hive, pig, or ksql.
@@ -159,7 +165,7 @@ ENVIRONMENT   : Apache Hadoop, PySpark v3.3.0, KSQL SQLite WASM, HDFS & YARN Eng
   kinit Hacker@HADOOP.LOCAL     Acquire Kerberos authentication ticket
   klist                         Inspect active Kerberos tickets
   kdestroy                      Destroy Kerberos tickets
-  ls, pwd, cd, mkdir, echo, cat, touch, rm, whoami
+  ls, pwd, cd, mkdir, rmdir, echo, cat, touch, rm, whoami
   grep <pattern> <file>         Search text in local files
   sort <file> / uniq <file>     Sort lines & count unique lines
   wc -l <file>                  Count lines/words/chars
@@ -389,6 +395,16 @@ export class HadoopShellExecutor {
     return res.stdout;
   }
 
+  public async executePythonRepl(line: string): Promise<string> {
+    const res = await this.pythonEngine.runPythonReplLine(
+      line,
+      this.localFiles,
+      (path, content) => this.saveLocalFileContent(path, content)
+    );
+    if (res.stderr) return res.stdout ? `${res.stdout}\n${res.stderr}` : res.stderr;
+    return res.stdout;
+  }
+
   public async loadFromDB(): Promise<void> {
     await this.db.waitReady();
 
@@ -551,29 +567,10 @@ res0: Long = 125`;
 
     
     if (trimmed.startsWith('pyspark')) {
-      if (!this.isYARNStarted) return `Spark Error: YARN ResourceManager is STOPPED. Run 'start-yarn.sh'.`;
-      return `Welcome to
-      ____              __
-     / __/__  ___ _____/ /__
-    _\\ \\/ _ \\/ _ \`/ __/  '_/
-   /__ / .__/\\_,_/_/ /_/\\_\\   version 3.3.0
-      /_/
-
-Using Python version 3.9.7
-Spark context Web UI available at http://localhost:4040
-Spark context available as 'sc' (master = yarn).
-SparkSession available as 'spark'.
->>> df = spark.read.json("/Hacker/data.json")
->>> df.show()
-+----+--------+
-| id |   name |
-+----+--------+
-|  1 | Hacker |
-+----+--------+`;
+      return '__LAUNCH_PYSPARK__';
     }
 
-    
-    if (trimmed.startsWith('kyuubi')) {
+        if (trimmed.startsWith('kyuubi')) {
       return `[Apache Kyuubi SQL Gateway] Server starting on thrift server port 10009...
 ✓ Kyuubi Server active (Engine: Spark SQL, Multi-tenant Session Isolation Enabled).`;
     }
@@ -945,11 +942,11 @@ ${result}`;
     }
 
     if (act === 'python' || act === 'python3') {
-      this.pythonEngine.initPyodide();
-
       if (args.length === 0) {
-        return `python: missing file operand. Usage: python <script.py> [args...]`;
+        return '__LAUNCH_PYTHON__';
       }
+
+      this.pythonEngine.initPyodide();
 
       if (args[0] === '-v' || args[0] === '--version' || args[0] === '-V') {
         return `Python 3.11.3 (Pyodide WebAssembly Engine)`;
@@ -1093,6 +1090,31 @@ Swap:           2048           0        2048`;
       this.localDirs.add(target);
       this.db.saveLocalDir(target);
       return `✓ Created local directory: ${target}`;
+    }
+
+    if (act === 'rmdir') {
+      if (args.length === 0) return 'rmdir: missing operand';
+      if (args.length > 1) return 'rmdir: too many arguments';
+      const target = this.resolveLocalPath(args[0]);
+      if (!this.localDirs.has(target)) {
+        if (this.localFiles.has(target)) return `rmdir: failed to remove '${args[0]}': Not a directory`;
+        return `rmdir: failed to remove '${args[0]}': No such file or directory`;
+      }
+      if (target === '/' || target === '/home' || target === '/home/Hacker') {
+        return `rmdir: failed to remove '${args[0]}': Permission denied`;
+      }
+      const prefix = target.endsWith('/') ? target : target + '/';
+      const hasChildDirectory = [...this.localDirs].some((dir) => dir !== target && dir.startsWith(prefix));
+      const hasChildFile = [...this.localFiles.keys()].some((file) => file.startsWith(prefix));
+      if (hasChildDirectory || hasChildFile) {
+        return `rmdir: failed to remove '${args[0]}': Directory not empty`;
+      }
+      if (this.localDir === target || this.localDir.startsWith(prefix)) {
+        return `rmdir: failed to remove '${args[0]}': Directory is in use`;
+      }
+      this.localDirs.delete(target);
+      this.db.deleteLocalDir(target);
+      return `✓ Removed local directory: ${target}`;
     }
 
     if (act === 'touch') {
@@ -2206,7 +2228,7 @@ Hadoop Daemon Controls:
   stop-dfs.sh / stop-all.sh     Stop cluster daemons
 
 Linux Commands & Text Editor:
-  ls, pwd, cd, mkdir, echo, cat, touch, rm, whoami
+  ls, pwd, cd, mkdir, rmdir, echo, cat, touch, rm, whoami
   grep <pattern> <file>         Search text in local files
   wc -l <file>                  Count lines/words/chars
   head / tail <file>            Display start/end of file
@@ -2218,6 +2240,7 @@ Linux Commands & Text Editor:
   vim <file> / vi <file>        Open interactive Vim text editor (:wq to save & exit)
 
 Node.js & Python Engines & Polyglot Hadoop Streaming:
+  python / python3               Open interactive Python REPL (>>> prompt)
   python script.py / python3    Execute Python file (Pyodide Wasm Engine + input() support)
   python -c "print('hello')"    Evaluate Python code inline
   python -v                     Display Python runtime version

@@ -3,9 +3,12 @@ import { HDFSNamespace } from '../../hdfs/namenode/namespace';
 const COMMON_COMMANDS = [
   'hdfs dfs -ls',
   'hdfs dfs -mkdir -p',
+  'rmdir',
   'hdfs dfs -put',
   'hdfs dfs -cat',
   'hdfs dfs -rm -r',
+  'python',
+  'pyspark',
   'hdfs dfs -du',
   'hdfs dfs -df',
   'hdfs fsck /',
