@@ -1592,6 +1592,9 @@ while (${w}) { if (++__py_while_count_${f}__ > 10000) break;`,c.push(y)}else/^de
 import sys
 import importlib
 __project_paths = ${c}
+# Match the terminal's home directory so relative file operations see shell files.
+import os
+os.chdir('/home/Hacker')
 # Reorder existing paths too: Pyodide's /home/pyodide can already be ahead
 # of the simulated home directory and shadow a same-named project package.
 sys.path[:] = __project_paths + [p for p in sys.path if p not in __project_paths]
